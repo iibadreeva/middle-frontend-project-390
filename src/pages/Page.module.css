@@ -1,0 +1,14 @@
+.page {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+.placeholder {
+  margin: 0;
+  color: #555;
+}
