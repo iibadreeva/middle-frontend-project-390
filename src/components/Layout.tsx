@@ -5,9 +5,9 @@ export function Layout() {
   return (
     <div className={styles.shell} data-testid="app">
       <header className={styles.header} data-testid="app-header">
-        <NavLink to="/" className={styles.brand} data-testid="app-brand">
-          Flight Booking
-        </NavLink>
+        <h1 className={styles.title} data-testid="home-heading">
+          Бронирование авиабилетов
+        </h1>
         <nav
           className={styles.nav}
           aria-label="Основная навигация"
@@ -19,16 +19,18 @@ export function Layout() {
               isActive ? `${styles.link} ${styles.active}` : styles.link
             }
             end
+            data-testid="nav-search"
           >
-            Поиск
+            Поиск рейсов
           </NavLink>
           <NavLink
-            to="/bookings/demo"
+            to="/bookings"
             className={({ isActive }) =>
               isActive ? `${styles.link} ${styles.active}` : styles.link
             }
+            data-testid="nav-bookings"
           >
-            Моя бронь
+            Мои брони
           </NavLink>
         </nav>
       </header>

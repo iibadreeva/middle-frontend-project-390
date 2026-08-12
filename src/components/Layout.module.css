@@ -2,42 +2,43 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: var(--color-bg);
 }
 
 .header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem 1.5rem;
-  background: #fff;
-  border-bottom: 1px solid #e4e4e0;
+  padding: 2rem 1.5rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.brand {
+.title {
+  margin: 0 0 1rem;
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
   font-weight: 700;
-  font-size: 1.125rem;
-  text-decoration: none;
+  line-height: 1.2;
+  color: var(--color-text);
 }
 
 .nav {
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 1.25rem;
 }
 
 .link {
+  font-size: 1rem;
+  font-weight: 500;
   text-decoration: none;
-  color: #555;
+  color: var(--color-primary);
 }
 
 .active {
-  color: #0b5fff;
+  color: var(--color-primary);
   font-weight: 600;
 }
 
 .main {
   flex: 1;
-  width: min(960px, 100%);
+  width: min(1120px, 100%);
   margin: 0 auto;
   padding: 1.5rem;
 }

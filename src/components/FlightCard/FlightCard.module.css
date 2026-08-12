@@ -1,0 +1,85 @@
+.card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem 1.5rem;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.main {
+  display: grid;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.airline {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.route {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--color-text);
+}
+
+.schedule {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.aside {
+  display: grid;
+  justify-items: end;
+  gap: 0.75rem;
+}
+
+.price {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.book {
+  padding: 0.5rem 1rem;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary-soft-text);
+  background: var(--color-primary-soft);
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.book:hover {
+  background: #dbeafe;
+}
+
+.book:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .card {
+    grid-template-columns: 1fr;
+  }
+
+  .aside {
+    justify-items: start;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    width: 100%;
+  }
+}

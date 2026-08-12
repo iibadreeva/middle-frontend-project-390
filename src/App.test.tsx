@@ -12,7 +12,7 @@ describe('App', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Поиск рейсов' }),
+      screen.getByRole('heading', { name: 'Бронирование авиабилетов' }),
     ).toBeInTheDocument();
   });
 });
