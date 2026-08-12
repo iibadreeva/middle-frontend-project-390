@@ -1,5 +1,6 @@
-import { chromium, type Browser, type Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { Browser, Page } from 'playwright';
+import { createBrowserPage } from './helpers/browser';
 
 describe('smoke', () => {
   let browser: Browser;
@@ -9,15 +10,7 @@ describe('smoke', () => {
   let appUrl: string;
 
   beforeAll(async () => {
-    appUrl = process.env.APP_URL ?? '';
-    if (!appUrl) {
-      throw new Error(
-        'APP_URL is not set. Run via `make test` or `APP_URL=http://localhost:5173 npm run test`.',
-      );
-    }
-
-    browser = await chromium.launch();
-    page = await browser.newPage();
+    ({ browser, page, appUrl } = await createBrowserPage());
 
     page.on('console', (message) => {
       if (message.type() === 'error') {
@@ -27,6 +20,25 @@ describe('smoke', () => {
 
     page.on('pageerror', (error) => {
       pageErrors.push(error.message);
+    });
+
+    await page.route('**/api/cities', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          { code: 'MOW', name: 'Москва', country: 'Россия' },
+          { code: 'LED', name: 'Санкт-Петербург', country: 'Россия' },
+        ]),
+      });
+    });
+
+    await page.route('**/api/flights*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      });
     });
 
     await page.goto(appUrl, { waitUntil: 'load' });

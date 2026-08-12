@@ -102,7 +102,9 @@ Extend `format.test.ts`:
 - Invalid timezone argument does not throw; falls back to Moscow formatting.
 - `todayIsoDate(timeZone)` returns `YYYY-MM-DD`; with `vi.useFakeTimers` / fixed `Date`, two zones near a day boundary can differ if you pick a careful instant — at minimum assert format and that `todayIsoDate('Asia/Yekaterinburg')` equals the `Intl` parts for that zone.
 
-Helper idea for suffix assertion: `expect(formatted).toMatch(/MSK|UTC[+-]/)`.
+Helper idea for suffix assertion: `expect(formatted).toMatch(/MSK$/)` for known zones (or exact `UTC+5:30` for others).
+
+> **Implementation note (as built):** ICU returns `GMT+3` for `Europe/Moscow`, not `MSK`. Final code uses `TIME_ZONE_ABBREVIATIONS` in `cityTimeZones.ts` for MSK/YEKT and offset-based `UTC±H` otherwise — do not reintroduce Intl short-name parsing for RU zones.
 
 **Step 2: Run — expect FAIL** (signature / suffix missing)
 
@@ -118,7 +120,7 @@ npx vitest run src/lib/format.test.ts
   1. Parse date; invalid → placeholder.
   2. Resolve effective zone (try/catch or validate via `Intl` — on failure use default).
   3. Format date+time with `ru-RU`.
-  4. Append short name from a second `Intl` pass with `timeZoneName: 'short'`; if the name looks like `GMT+3` / numeric offset, normalize to `UTC+3` / `UTC+3:30`.
+  4. Append short suffix from `TIME_ZONE_ABBREVIATIONS` (`MSK` / `YEKT`); otherwise format offset as `UTC±H` / `UTC±H:MM` (zero offset → `UTC`). Do **not** rely on ICU `timeZoneName: 'short'` for Russian zones.
 - `todayIsoDate(timeZone)`: same `en-CA` + `formatToParts`, parameterized zone, fallback on bad zone.
 
 **Step 4: Run — expect PASS**
@@ -195,7 +197,7 @@ git commit -m "Tie search today and past-date checks to origin timezone."
 **Step 1: Failing test**
 
 - Build a flight with `origin.code = 'MOW'`, `destination.code = 'SVX'` (same UTC timestamps).
-- Assert schedule text contains two different zone suffixes (e.g. `MSK` and something for Yekaterinburg — often `YEKT` or `UTC+5` depending on engine).
+- Assert schedule text contains two different zone suffixes (`MSK` and `YEKT` via `TIME_ZONE_ABBREVIATIONS`, not engine-dependent Intl names).
 - Prefer asserting via `data-testid` if you split departure/arrival spans:
 
 ```tsx
@@ -243,8 +245,8 @@ git commit -m "Show departure and arrival in airport-local timezones."
 
 ```ts
 // after loading results for MOW→SVX fixture
-expect(await page.getByTestId('flight-departure').textContent()).toMatch(/MSK|UTC/);
-expect(await page.getByTestId('flight-arrival').textContent()).toMatch(/UTC\+5|YEKT|UTC/);
+expect(await page.getByTestId('flight-departure').textContent()).toMatch(/MSK$/);
+expect(await page.getByTestId('flight-arrival').textContent()).toMatch(/YEKT$/);
 ```
 
 **Step 2–4:** implement README + fixtures + browser test; run:

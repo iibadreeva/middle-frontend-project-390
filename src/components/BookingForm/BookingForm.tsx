@@ -18,6 +18,7 @@ export type BookingFormValues = {
 type BookingFormProps = {
   flightLabel: string;
   initialValues?: BookingFormValues;
+  submitDisabled?: boolean;
   onSubmit?: (values: BookingFormValues) => void;
 };
 
@@ -31,6 +32,7 @@ const emptyPassenger = (): PassengerValues => ({
 export function BookingForm({
   flightLabel,
   initialValues = defaultBookingValues,
+  submitDisabled = false,
   onSubmit,
 }: BookingFormProps) {
   const [email, setEmail] = useState(initialValues.email);
@@ -51,6 +53,9 @@ export function BookingForm({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitDisabled) {
+      return;
+    }
     onSubmit?.({ email, phone, passengers });
   }
 
@@ -180,6 +185,7 @@ export function BookingForm({
         <button
           className={styles.primary}
           type="submit"
+          disabled={submitDisabled}
           data-testid="submit-booking-button"
         >
           Забронировать

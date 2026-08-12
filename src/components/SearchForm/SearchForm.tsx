@@ -1,78 +1,68 @@
 import { FormEvent } from 'react';
+import type { City } from '../../api';
+import { todayIsoDate } from '../../lib/format';
+import { resolveTimeZoneByCode } from '../../lib/resolveCityTimeZone';
+import type { SearchFormValues } from '../../lib/resolveSearchValues';
+import { CitySelect } from './CitySelect';
 import styles from './SearchForm.module.css';
-
-export type SearchFormValues = {
-  origin: string;
-  destination: string;
-  date: string;
-  passengers: number;
-};
+import { useSearchFormDraft } from './useSearchFormDraft';
 
 type SearchFormProps = {
   values: SearchFormValues;
-  cities?: Array<{ code: string; name: string }>;
+  cities: City[];
+  submitDisabled?: boolean;
+  externalError?: string | null;
   onSubmit?: (values: SearchFormValues) => void;
 };
 
-const defaultCities = [
-  { code: 'MOW', name: 'Москва' },
-  { code: 'LED', name: 'Санкт-Петербург' },
-];
-
 export function SearchForm({
   values,
-  cities = defaultCities,
+  cities,
+  submitDisabled = false,
+  externalError = null,
   onSubmit,
 }: SearchFormProps) {
+  const { draft, formError, updateDraft, commitDraft } = useSearchFormDraft(
+    values,
+    cities,
+  );
+
+  const originZone = resolveTimeZoneByCode(cities, draft.origin);
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-
-    onSubmit?.({
-      origin: String(formData.get('origin') ?? values.origin),
-      destination: String(formData.get('destination') ?? values.destination),
-      date: String(formData.get('date') ?? values.date),
-      passengers: Number(formData.get('passengers') ?? values.passengers),
-    });
+    const nextValues = commitDraft();
+    if (nextValues) {
+      onSubmit?.(nextValues);
+    }
   }
+
+  const visibleError = formError ?? externalError;
 
   return (
     <form
       className={styles.form}
-      data-testid="search-form"
+      data-testid="flight-search-form"
+      noValidate
       onSubmit={handleSubmit}
     >
-      <label className={styles.field}>
-        <span className={styles.label}>Откуда</span>
-        <select
-          className={styles.select}
-          name="origin"
-          defaultValue={values.origin}
-          data-testid="search-origin"
-        >
-          {cities.map((city) => (
-            <option key={city.code} value={city.code}>
-              {city.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <CitySelect
+        label="Откуда"
+        name="origin"
+        value={draft.origin}
+        cities={cities}
+        testId="search-origin"
+        onChange={(code) => updateDraft('origin', code)}
+      />
 
-      <label className={styles.field}>
-        <span className={styles.label}>Куда</span>
-        <select
-          className={styles.select}
-          name="destination"
-          defaultValue={values.destination}
-          data-testid="search-destination"
-        >
-          {cities.map((city) => (
-            <option key={city.code} value={city.code}>
-              {city.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <CitySelect
+        label="Куда"
+        name="destination"
+        value={draft.destination}
+        cities={cities}
+        testId="search-destination"
+        onChange={(code) => updateDraft('destination', code)}
+      />
 
       <label className={styles.field}>
         <span className={styles.label}>Дата</span>
@@ -80,7 +70,9 @@ export function SearchForm({
           className={styles.input}
           type="date"
           name="date"
-          defaultValue={values.date}
+          min={todayIsoDate(originZone)}
+          value={draft.date}
+          onChange={(event) => updateDraft('date', event.target.value)}
           data-testid="search-date"
         />
       </label>
@@ -93,14 +85,31 @@ export function SearchForm({
           name="passengers"
           min={1}
           max={9}
-          defaultValue={values.passengers}
+          value={Number.isFinite(draft.passengers) ? draft.passengers : ''}
+          onChange={(event) =>
+            updateDraft(
+              'passengers',
+              event.target.value === '' ? Number.NaN : Number(event.target.value),
+            )
+          }
           data-testid="search-passengers"
         />
       </label>
 
-      <button className={styles.submit} type="submit" data-testid="search-submit">
+      <button
+        className={styles.submit}
+        type="submit"
+        disabled={submitDisabled}
+        data-testid="search-submit"
+      >
         Найти
       </button>
+
+      {visibleError ? (
+        <p className={styles.error} data-testid="search-form-error" role="alert">
+          {visibleError}
+        </p>
+      ) : null}
     </form>
   );
 }

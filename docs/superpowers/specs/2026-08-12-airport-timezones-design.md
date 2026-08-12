@@ -16,7 +16,7 @@ Departure and arrival on a flight card must use the **airport local timezone** o
 | Zone source | Hybrid: client dictionary by city `code`, optional `City.timeZone` from API overrides |
 | OpenAPI | Do **not** require contract/Prism changes; `timeZone` is optional on the TypeScript `City` type |
 | Calendar “today” / past validation | Origin city timezone |
-| Time label on card | Short suffix: IANA short name when usable (`MSK`), else `UTC±H` / `UTC±H:MM` |
+| Time label on card | Short suffix from client dictionary (`TIME_ZONE_ABBREVIATIONS`: `MSK`, `YEKT`); unknown zones → `UTC±H` / `UTC±H:MM` (ICU `timeZoneName: 'short'` for RU zones returns `GMT+3`, so we do **not** rely on Intl abbreviations) |
 | Dictionary duplication | Single map in `src/data/cityTimeZones.ts`; do **not** duplicate zones on every `FALLBACK_CITIES` entry |
 
 ## Architecture
@@ -33,9 +33,9 @@ Dictionary covers at least the codes used by fallback cities and test fixtures (
 
 ### Format
 
-- Change `formatDateTime(iso, timeZone)` to format with `Intl` `ru-RU` in the given zone and append the short suffix described above.  
+- Change `formatDateTime(iso, timeZone)` to format with `Intl` `ru-RU` in the given zone and append a short suffix from `TIME_ZONE_ABBREVIATIONS`, else `UTC±H` / `UTC±H:MM` from the zone offset (not from ICU short names).  
 - Invalid ISO → existing placeholder `время неизвестно` (no throw).  
-- Invalid / unsupported `timeZone` → fall back to `Europe/Moscow` without breaking the UI.  
+- Invalid / unsupported `timeZone` → fall back to `Europe/Moscow` without breaking the UI (warn once per bad zone).  
 - `todayIsoDate(timeZone)` returns `YYYY-MM-DD` for “today” in that zone (same `en-CA` / `formatToParts` approach as today, but parameterized).  
 - `formatDuration` unchanged (elapsed minutes, not wall clock).
 

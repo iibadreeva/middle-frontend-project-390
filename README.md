@@ -28,12 +28,31 @@ Browser smoke-тест (Vitest + Playwright) читает адрес **толь�
 make browsers                                 # один раз: Chromium для Playwright
 make mock && make dev                         # в отдельных терминалах
 make test                                     # APP_URL по умолчанию http://localhost:5173
-APP_URL=http://localhost:4173 make test       # против vite preview
+                                              # (dev-сервер отдаёт свежий код сам)
+make build && make preview                    # в отдельном терминале
+APP_URL=http://localhost:4173 make test       # против vite preview; нужен свежий dist
 ```
 
 Юнит-тесты (`src/**/*.test.tsx`) и browser-тесты (`tests/**/*.spec.ts`) идут одной командой `make test`.
+Preview не подхватывает правки автоматически — перед тестами против 4173 пересоберите `make build` (или перезапустите preview после сборки).
+### Поиск рейсов
 
-Ключевые `data-testid` на этом шаге: `app`, `app-header`, `app-brand`, `app-nav`, `app-main`, `search-page`, `home-heading`. Дальше по чеклисту Hexlet добавляйте атрибуты на новые интерактивные элементы.
+На главной (`/`) форма и список рейсов работают через API:
+
+- `GET /api/cities` — названия городов в селектах (в запрос уходят **коды**). Если запрос падает или возвращает пустой список, форма остаётся на запасном наборе (`FALLBACK_CITIES`) и показывает `cities-fallback-notice`.
+- `GET /api/flights?origin&destination&date&passengers` — поиск; пустой массив = «рейсов не найдено». Поиск стартует только после ответа `/api/cities` (или его ошибки), чтобы не слать лишний запрос по fallback-кодам.
+
+Список загружается с разумными значениями по умолчанию (MOW → LED, сегодня, 1 пассажир). Параметры синхронизируются в query-строке. Старые ссылки `/flights?...` редиректят на `/?...`. Сетевые запросы ограничены таймаутом 15 с.
+
+Даты и время: вылет/прилёт на карточке — **местное время аэропорта** (зона origin / destination) с коротким суффиксом (`MSK`, `YEKT`, `UTC+5`, …). Зона берётся из опционального `City.timeZone` в ответе API или из клиентского словаря `src/data/cityTimeZones.ts` (неизвестный код → `Europe/Moscow`). «Сегодня» и проверка «дата не в прошлом» считаются в зоне **города вылета** (`resolveSearchValues` / `validateSearchValues`, у инпута `min`). Некорректная или прошедшая дата в query переписывается на «сегодня» в зоне origin.
+
+Цена: `Flight.price` из контракта — **за одного пассажира**. Карточка так и подписывает её (`flight-price`), а при нескольких пассажирах добавляет итог (`flight-total-price`). Показываются свободные места (`flight-seats`); если их меньше, чем пассажиров в поиске, выводится предупреждение (`flight-seats-warning`).
+
+Состояния результата: загрузка (`flights-loading`), список (`flight-results` / `flight-result-item`), пусто (`flights-empty`), ошибка (`flights-error`). Кнопка `book-flight` ведёт на `/booking/:id`; на странице бронирования submit заблокирован, пока рейс не загрузился.
+
+Browser-тесты поиска (`tests/flight-search.spec.ts`) подменяют ответы API через `page.route`, поэтому не зависят от содержимого Prism. Общие фикстуры городов/рейсов и хелперы дат живут в `src/test/fixtures.ts` — даты в тестах считаются от «сегодня», чтобы не устаревать.
+
+Ключевые `data-testid` поиска: `flight-search-form`, `search-origin`, `search-destination`, `search-date`, `search-passengers`, `search-submit`, `search-form-error`, `cities-fallback-notice`, `flight-results`, `flight-result-item`, `flights-empty`, `flights-error`, `flights-loading`, `flight-departure`, `flight-arrival`, `flight-price`, `flight-total-price`, `flight-duration`, `flight-seats`, `flight-seats-warning`, `book-flight`.
 
 ### CI
 

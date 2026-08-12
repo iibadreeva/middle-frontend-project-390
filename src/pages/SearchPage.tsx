@@ -1,29 +1,59 @@
-import { useNavigate } from 'react-router-dom';
+import { FlightResults } from '../components/FlightResults/FlightResults';
 import { SearchForm } from '../components/SearchForm/SearchForm';
-import type { SearchFormValues } from '../components/SearchForm/SearchForm';
-import { defaultSearchValues } from '../data/mockFlights';
+import { useCities } from '../hooks/useCities';
+import { useFlightSearch } from '../hooks/useFlightSearch';
+import { FLIGHTS_SEARCH_ERROR } from '../lib/messages';
 import styles from './Page.module.css';
 
 export function SearchPage() {
-  const navigate = useNavigate();
+  const { cities, notice: citiesNotice, ready: citiesReady } = useCities();
+  const {
+    values,
+    valuesError,
+    status,
+    flights,
+    errorMessage,
+    submit,
+  } = useFlightSearch(cities, citiesReady);
 
-  function handleSubmit(values: SearchFormValues) {
-    const query = new URLSearchParams({
-      origin: values.origin,
-      destination: values.destination,
-      date: values.date,
-      passengers: String(values.passengers),
-    });
-
-    navigate(`/flights?${query}`);
+  let results = null;
+  if (!valuesError) {
+    if (status === 'loading') {
+      results = <FlightResults status="loading" />;
+    } else if (status === 'error') {
+      results = (
+        <FlightResults
+          status="error"
+          errorMessage={errorMessage ?? FLIGHTS_SEARCH_ERROR}
+        />
+      );
+    } else {
+      results = (
+        <FlightResults
+          status="success"
+          flights={flights}
+          passengers={values.passengers}
+          cities={cities}
+        />
+      );
+    }
   }
 
   return (
     <section className={styles.page} data-testid="search-page">
-      <SearchForm values={defaultSearchValues} onSubmit={handleSubmit} />
-      <p className={styles.hint} data-testid="search-placeholder">
-        Укажите маршрут и нажмите «Найти», чтобы увидеть доступные рейсы.
-      </p>
+      <SearchForm
+        values={values}
+        cities={cities}
+        submitDisabled={!valuesError && status === 'loading'}
+        externalError={valuesError}
+        onSubmit={submit}
+      />
+      {citiesNotice ? (
+        <p className={styles.notice} data-testid="cities-fallback-notice" role="status">
+          {citiesNotice}
+        </p>
+      ) : null}
+      {results}
     </section>
   );
 }

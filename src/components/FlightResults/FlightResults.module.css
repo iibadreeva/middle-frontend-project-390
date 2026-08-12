@@ -1,0 +1,22 @@
+.list {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.message {
+  margin: 0;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.error {
+  color: var(--color-danger-soft-text);
+  border-color: var(--color-danger-soft-border);
+  background: var(--color-danger-soft);
+}

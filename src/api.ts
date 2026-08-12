@@ -1,7 +1,12 @@
+import { mergeAbortSignals } from './lib/abortSignals';
+import { ApiError } from './lib/errors';
+
 export type City = {
   code: string;
   name: string;
   country?: string;
+  /** IANA-зона, напр. Europe/Moscow. Опционально; если нет — клиентский словарь. */
+  timeZone?: string;
 };
 
 export type Money = {
@@ -23,6 +28,7 @@ export type Flight = {
   departureAt: string;
   arrivalAt: string;
   durationMinutes: number;
+  /** Цена за одного пассажира, см. contract/openapi.yaml. */
   price: Money;
   seatsAvailable: number;
 };
@@ -57,42 +63,75 @@ export type CreateBookingRequest = {
   contact: Contact;
 };
 
+/** Таймаут сетевых запросов, чтобы UI не зависал навечно. */
+const REQUEST_TIMEOUT_MS = 15_000;
+
+export function mergeRequestHeaders(
+  initHeaders?: HeadersInit,
+  options?: { hasBody?: boolean },
+): Headers {
+  const headers = new Headers(initHeaders);
+
+  if (!headers.has('Accept')) {
+    headers.set('Accept', 'application/json');
+  }
+
+  if (options?.hasBody && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  return headers;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      ...init?.headers,
-    },
-    ...init,
-  });
+  const { headers: initHeaders, signal, ...restInit } = init ?? {};
+  const hasBody = restInit.body != null;
+  const merged = mergeAbortSignals(
+    signal ?? undefined,
+    AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  );
 
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => null);
-    const message =
-      errorBody && typeof errorBody === 'object' && 'message' in errorBody
-        ? String(errorBody.message)
-        : `Request failed: ${response.status}`;
-    throw new Error(message);
+  try {
+    const response = await fetch(path, {
+      ...restInit,
+      signal: merged?.signal,
+      headers: mergeRequestHeaders(initHeaders, { hasBody }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => null);
+      const message =
+        errorBody && typeof errorBody === 'object' && 'message' in errorBody
+          ? String(errorBody.message)
+          : `Request failed: ${response.status}`;
+      throw new ApiError(message, response.status, {
+        cause: errorBody ?? undefined,
+      });
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    return (await response.json()) as T;
+  } finally {
+    merged?.dispose();
   }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json() as Promise<T>;
 }
 
-export function getCities(): Promise<City[]> {
-  return request<City[]>('/api/cities');
+export function getCities(signal?: AbortSignal): Promise<City[]> {
+  return request<City[]>('/api/cities', { signal });
 }
 
-export function getFlights(params: {
-  origin: string;
-  destination: string;
-  date: string;
-  passengers: number;
-}): Promise<Flight[]> {
+export function getFlights(
+  params: {
+    origin: string;
+    destination: string;
+    date: string;
+    passengers: number;
+  },
+  signal?: AbortSignal,
+): Promise<Flight[]> {
   const query = new URLSearchParams({
     origin: params.origin,
     destination: params.destination,
@@ -100,11 +139,11 @@ export function getFlights(params: {
     passengers: String(params.passengers),
   });
 
-  return request<Flight[]>(`/api/flights?${query}`);
+  return request<Flight[]>(`/api/flights?${query}`, { signal });
 }
 
-export function getFlight(id: string): Promise<Flight> {
-  return request<Flight>(`/api/flights/${encodeURIComponent(id)}`);
+export function getFlight(id: string, signal?: AbortSignal): Promise<Flight> {
+  return request<Flight>(`/api/flights/${encodeURIComponent(id)}`, { signal });
 }
 
 export function createBooking(body: CreateBookingRequest): Promise<Booking> {

@@ -1,8 +1,8 @@
 import { spawnSync } from 'node:child_process';
 
 /**
- * Ensures APP_URL is available for browser tests without hardcoding it
- * inside the specs. Override via env or `APP_URL=... make test`.
+ * Задаёт APP_URL для browser-тестов без хардкода в спеках.
+ * Переопределение: `APP_URL=... npm run test` или через Makefile.
  */
 const env = {
   ...process.env,
