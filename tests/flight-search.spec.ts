@@ -61,12 +61,10 @@ describe('flight search', () => {
   });
 
   it('sends city codes, date and passengers after submit', async () => {
-    const flightRequests: string[] = [];
-
-    await mockFlightsApi(page, (url) => {
-      flightRequests.push(url.search);
-      return { status: 200, body: fixtureFlights };
-    });
+    await mockFlightsApi(page, () => ({
+      status: 200,
+      body: fixtureFlights,
+    }));
 
     await page.goto(appUrl, { waitUntil: 'load' });
     await page.getByTestId('flight-results').waitFor({ state: 'visible' });
@@ -77,15 +75,24 @@ describe('flight search', () => {
     await page.getByTestId('search-destination').selectOption({ label: 'Сочи' });
     await page.getByTestId('search-date').fill(otherSearchDate);
     await page.getByTestId('search-passengers').fill('3');
+
+    // Подписка до клика: запрос уходит из эффекта и может опередить смену URL.
+    const searchRequest = page.waitForRequest((request) =>
+      /\/api\/flights\/?$/.test(new URL(request.url()).pathname),
+    );
     await page.getByTestId('search-submit').click();
 
-    await page.waitForURL(/origin=LED/);
+    const query = new URL((await searchRequest).url()).searchParams;
+    expect(query.get('origin')).toBe('LED');
+    expect(query.get('destination')).toBe('AER');
+    expect(query.get('date')).toBe(otherSearchDate);
+    expect(query.get('passengers')).toBe('3');
 
-    const lastRequest = flightRequests[flightRequests.length - 1] ?? '';
-    expect(lastRequest).toContain('origin=LED');
-    expect(lastRequest).toContain('destination=AER');
-    expect(lastRequest).toContain(`date=${otherSearchDate}`);
-    expect(lastRequest).toContain('passengers=3');
+    await page.waitForURL(
+      (url) =>
+        url.searchParams.get('origin') === 'LED' &&
+        url.searchParams.get('destination') === 'AER',
+    );
   });
 
   it('applies search params from the URL on open', async () => {

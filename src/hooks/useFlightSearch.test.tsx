@@ -199,5 +199,15 @@ describe('useFlightSearch', () => {
         passengers: 3,
       });
     });
+
+    await waitFor(() => {
+      const lastCallUrl = String(vi.mocked(fetch).mock.calls.at(-1)?.[0] ?? '');
+      const query = new URL(lastCallUrl, 'http://localhost').searchParams;
+
+      expect(query.get('origin')).toBe('LED');
+      expect(query.get('destination')).toBe('AER');
+      expect(query.get('date')).toBe(otherDate);
+      expect(query.get('passengers')).toBe('3');
+    });
   });
 });
