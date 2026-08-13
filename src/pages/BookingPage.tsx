@@ -1,83 +1,121 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { getFlight } from '../api';
+import { useCallback } from 'react';
+import { useParams } from 'react-router-dom';
+import type { Flight } from '../api';
+import { BookingFlight } from '../components/BookingFlight/BookingFlight';
 import {
   BookingForm,
   type BookingFormValues,
 } from '../components/BookingForm/BookingForm';
-import { ApiError } from '../lib/errors';
+import { BookingSuccess } from '../components/BookingSuccess/BookingSuccess';
+import { useCreateBooking } from '../hooks/useCreateBooking';
+import { useFlight } from '../hooks/useFlight';
 import { FLIGHT_LOAD_ERROR, FLIGHT_NOT_FOUND } from '../lib/messages';
 import styles from './Page.module.css';
 
-type FlightState = {
-  flightId: string;
-  label: string;
-  ready: boolean;
-};
-
 export function BookingPage() {
   const { flightId } = useParams();
-  const navigate = useNavigate();
-  const [state, setState] = useState<FlightState | null>(null);
+  const { status: flightStatus, flight, reload } = useFlight(flightId);
+  const {
+    status: createStatus,
+    booking,
+    errorMessage,
+    submit,
+    clearError,
+  } = useCreateBooking(flightId);
 
-  // Состояние привязано к flightId: смена рейса сразу же показывает загрузку,
-  // без setState в теле эффекта.
-  const current = state?.flightId === flightId ? state : null;
-  const flightLabel = flightId
-    ? (current?.label ?? 'Загрузка рейса…')
-    : 'Рейс не выбран';
-  const flightReady = current?.ready ?? false;
-
-  useEffect(() => {
-    if (!flightId) {
-      return;
-    }
-
-    const controller = new AbortController();
-
-    getFlight(flightId, controller.signal)
-      .then((flight) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        setState({
-          flightId,
-          label: `${flight.airline.name} · ${flight.flightNumber}: ${flight.origin.name} → ${flight.destination.name}`,
-          ready: true,
-        });
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        if (error instanceof ApiError && error.status === 404) {
-          setState({ flightId, label: FLIGHT_NOT_FOUND, ready: false });
-          return;
-        }
-        console.error(error);
-        setState({ flightId, label: FLIGHT_LOAD_ERROR, ready: false });
-      });
-
-    return () => controller.abort();
-  }, [flightId]);
+  const renderFlightSlot = useCallback(
+    (passengerCount: number) => (
+      <BookingFlightSlot flight={flight} passengerCount={passengerCount} />
+    ),
+    [flight],
+  );
 
   function handleSubmit(values: BookingFormValues) {
-    if (!flightReady) {
+    if (!flightId || flightStatus !== 'success') {
       return;
     }
-    const lastName = values.passengers[0]?.lastName?.trim() || 'demo';
-    navigate(
-      `/bookings/0S54B6/confirmation?lastName=${encodeURIComponent(lastName)}`,
+
+    submit({
+      flightId,
+      contact: {
+        email: values.email,
+        phone: values.phone,
+      },
+      passengers: values.passengers,
+    });
+  }
+
+  if (flightStatus === 'not-found') {
+    return (
+      <section className={styles.page} data-testid="booking-page">
+        <p className={styles.empty} data-testid="flight-not-found" role="alert">
+          {FLIGHT_NOT_FOUND}
+        </p>
+      </section>
+    );
+  }
+
+  if (flightStatus === 'error') {
+    return (
+      <section className={styles.page} data-testid="booking-page">
+        <p
+          className={styles.empty}
+          data-testid="booking-flight-error"
+          role="alert"
+        >
+          {FLIGHT_LOAD_ERROR}
+        </p>
+        <button
+          className={styles.retry}
+          type="button"
+          data-testid="booking-flight-retry"
+          onClick={reload}
+        >
+          Повторить
+        </button>
+      </section>
+    );
+  }
+
+  if (createStatus === 'success' && booking) {
+    return (
+      <section className={styles.page} data-testid="booking-page">
+        <BookingSuccess booking={booking} />
+      </section>
     );
   }
 
   return (
     <section className={styles.page} data-testid="booking-page">
       <BookingForm
-        flightLabel={flightLabel}
-        submitDisabled={!flightReady}
+        key={flightId}
+        flightSlot={renderFlightSlot}
+        unitPrice={flight?.price}
+        seatsAvailable={flight?.seatsAvailable}
+        submitDisabled={flightStatus !== 'success'}
+        submitting={createStatus === 'submitting'}
+        externalError={createStatus === 'error' ? errorMessage : null}
+        onDismissExternalError={clearError}
         onSubmit={handleSubmit}
       />
     </section>
   );
+}
+
+function BookingFlightSlot({
+  flight,
+  passengerCount,
+}: {
+  flight: Flight | null;
+  passengerCount: number;
+}) {
+  if (!flight) {
+    return (
+      <p className={styles.empty} data-testid="booking-flight">
+        Загрузка рейса…
+      </p>
+    );
+  }
+
+  return <BookingFlight flight={flight} passengers={passengerCount} />;
 }

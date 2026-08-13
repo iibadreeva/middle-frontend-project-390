@@ -86,10 +86,18 @@
   border-radius: var(--radius-sm);
   cursor: pointer;
   white-space: nowrap;
+  text-decoration: none;
 }
 
-.book:hover {
+.book:hover:not(:disabled) {
   background: #dbeafe;
+}
+
+.book:disabled {
+  color: var(--color-text-muted);
+  background: #f3f4f6;
+  border-color: var(--color-border);
+  cursor: not-allowed;
 }
 
 .book:focus-visible {

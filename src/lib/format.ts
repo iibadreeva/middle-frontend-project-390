@@ -128,6 +128,13 @@ export function formatPrice(money: Money): string {
   return `${amount} ${currency}`;
 }
 
+export function totalMoney(unit: Money, passengers: number): Money {
+  return {
+    amount: unit.amount * passengers,
+    currency: unit.currency,
+  };
+}
+
 export function formatDuration(minutes: number): string {
   if (!Number.isFinite(minutes) || minutes < 0) {
     return 'длительность неизвестна';

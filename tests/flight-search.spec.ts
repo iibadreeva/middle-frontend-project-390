@@ -5,7 +5,6 @@ import {
   futureIsoDate,
   mockCitiesApi,
   mockCitiesApiError,
-  mockFlightByIdApi,
   mockFlightsApi,
   normalizeSpaces,
   pastIsoDate,
@@ -234,12 +233,11 @@ describe('flight search', () => {
     expect(await page.getByTestId('flight-results').isVisible()).toBe(true);
   });
 
-  it('navigates to booking page and shows flight summary', async () => {
+  it('navigates to booking page via book-flight', async () => {
     await mockFlightsApi(page, () => ({
       status: 200,
       body: fixtureFlights,
     }));
-    await mockFlightByIdApi(page, 'fl_1', fixtureFlights[0]);
 
     await page.goto(appUrl, { waitUntil: 'load' });
     await page.getByTestId('flight-results').waitFor({ state: 'visible' });
@@ -247,16 +245,6 @@ describe('flight search', () => {
     await page.waitForURL(/\/booking\/fl_1/);
 
     expect(page.url()).toMatch(/\/booking\/fl_1/);
-    await page.getByTestId('booking-form').waitFor({ state: 'visible' });
-    await page.waitForFunction(() => {
-      const el = document.querySelector(
-        '[data-testid="booking-flight-summary"]',
-      );
-      return el?.textContent?.includes('Аэрофлот · SU1234') ?? false;
-    });
-    expect(
-      await page.getByTestId('booking-flight-summary').textContent(),
-    ).toContain('Аэрофлот · SU1234');
   });
 
   it('rewrites invalid URL params to resolved search values', async () => {
@@ -448,6 +436,7 @@ describe('flight search', () => {
       true,
     );
     expect(await page.getByTestId('flight-seats').textContent()).toContain('2');
+    expect(await page.getByTestId('book-flight').isDisabled()).toBe(true);
   });
 
   it('shows departure and arrival in airport-local timezones', async () => {

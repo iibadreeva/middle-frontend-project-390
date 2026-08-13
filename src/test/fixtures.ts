@@ -1,4 +1,4 @@
-import type { City, Flight } from '../api';
+import type { Booking, City, Flight } from '../api';
 import { DEFAULT_CITY_TIME_ZONE } from '../data/cityTimeZones';
 import { todayIsoDate } from '../lib/format';
 
@@ -35,6 +35,34 @@ export const fixtureFlights: Flight[] = [
     seatsAvailable: 18,
   },
 ];
+
+export function fixtureBooking(overrides: Partial<Booking> = {}): Booking {
+  const flight = fixtureFlights[0];
+
+  return {
+    code: 'AB12CD',
+    status: 'confirmed',
+    flight,
+    passengers: [
+      {
+        firstName: 'Иван',
+        lastName: 'Петров',
+        dateOfBirth: '1990-05-20',
+        documentNumber: '4509 123456',
+      },
+    ],
+    contact: {
+      email: 'ivan@example.com',
+      phone: '+79991234567',
+    },
+    totalPrice: {
+      amount: flight.price.amount,
+      currency: flight.price.currency,
+    },
+    createdAt: '2026-06-25T12:00:00Z',
+    ...overrides,
+  };
+}
 
 export function shiftIsoDate(iso: string, days: number): string {
   const [year, month, day] = iso.split('-').map(Number);

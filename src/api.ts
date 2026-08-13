@@ -146,10 +146,14 @@ export function getFlight(id: string, signal?: AbortSignal): Promise<Flight> {
   return request<Flight>(`/api/flights/${encodeURIComponent(id)}`, { signal });
 }
 
-export function createBooking(body: CreateBookingRequest): Promise<Booking> {
+export function createBooking(
+  body: CreateBookingRequest,
+  signal?: AbortSignal,
+): Promise<Booking> {
   return request<Booking>('/api/bookings', {
     method: 'POST',
     body: JSON.stringify(body),
+    signal,
   });
 }
 

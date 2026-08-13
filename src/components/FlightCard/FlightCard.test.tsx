@@ -72,6 +72,22 @@ describe('FlightCard', () => {
     expect(screen.getByTestId('flight-seats-warning')).toBeInTheDocument();
   });
 
+  it('disables booking when seats are fewer than requested passengers', () => {
+    renderCard({ flight: { ...flight, seatsAvailable: 2 }, passengers: 3 });
+
+    const book = screen.getByTestId('book-flight');
+    expect(book).toBeDisabled();
+    expect(book).not.toHaveAttribute('href');
+  });
+
+  it('keeps booking enabled when seats are enough', () => {
+    renderCard({ passengers: 3 });
+
+    const book = screen.getByTestId('book-flight');
+    expect(book).toBeEnabled();
+    expect(book).toHaveAttribute('href', `/booking/${flight.id}`);
+  });
+
   it('has no warning when seats are enough', () => {
     renderCard({ passengers: 3 });
 

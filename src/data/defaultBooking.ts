@@ -1,14 +1,16 @@
-import type { BookingFormValues } from '../components/BookingForm/BookingForm';
+import type { BookingFormValues } from '../lib/bookingValidation';
 
-export const defaultBookingValues: BookingFormValues = {
-  email: 'ivan@example.com',
-  phone: '+7 999 000-11-22',
-  passengers: [
-    {
-      firstName: 'Иван',
-      lastName: 'Петров',
-      dateOfBirth: '',
-      documentNumber: '4509 123456',
-    },
-  ],
-};
+export const emptyPassenger = (): BookingFormValues['passengers'][number] => ({
+  firstName: '',
+  lastName: '',
+  dateOfBirth: '',
+  documentNumber: '',
+});
+
+export function createEmptyBookingValues(): BookingFormValues {
+  return {
+    email: '',
+    phone: '',
+    passengers: [emptyPassenger()],
+  };
+}

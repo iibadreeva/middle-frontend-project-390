@@ -1,77 +1,202 @@
-import { FormEvent, useState } from 'react';
-import { defaultBookingValues } from '../../data/defaultBooking';
+import { FormEvent, useId, useRef, useState, type ReactNode } from 'react';
+import type { Money } from '../../api';
+import {
+  createEmptyBookingValues,
+  emptyPassenger,
+} from '../../data/defaultBooking';
+import {
+  MAX_BOOKING_PASSENGERS,
+  validateBooking,
+  type BookingFormValues,
+  type BookingPassengerValues,
+} from '../../lib/bookingValidation';
+import { formatPrice, totalMoney } from '../../lib/format';
+import { BOOKING_SEATS_ERROR } from '../../lib/messages';
+import { BookingFormActions } from './BookingFormActions';
 import styles from './BookingForm.module.css';
+import { PassengerFields } from './PassengerFields';
 
-export type PassengerValues = {
-  firstName: string;
-  lastName: string;
-  dateOfBirth: string;
-  documentNumber: string;
-};
+export type { BookingFormValues, BookingPassengerValues };
 
-export type BookingFormValues = {
-  email: string;
-  phone: string;
-  passengers: PassengerValues[];
+type PassengerRow = BookingPassengerValues & { id: string };
+
+type FormFeedback = {
+  message: string | null;
+  invalidFields: ReadonlySet<string>;
 };
 
 type BookingFormProps = {
-  flightLabel: string;
+  flightSlot?: (passengerCount: number) => ReactNode;
+  unitPrice?: Money;
   initialValues?: BookingFormValues;
+  seatsAvailable?: number;
   submitDisabled?: boolean;
+  submitting?: boolean;
+  externalError?: string | null;
+  onDismissExternalError?: () => void;
   onSubmit?: (values: BookingFormValues) => void;
 };
 
-const emptyPassenger = (): PassengerValues => ({
-  firstName: '',
-  lastName: '',
-  dateOfBirth: '',
-  documentNumber: '',
-});
+function createEmptyFeedback(): FormFeedback {
+  return {
+    message: null,
+    invalidFields: new Set(),
+  };
+}
+
+function trimPassenger(
+  passenger: BookingPassengerValues,
+): BookingPassengerValues {
+  return {
+    firstName: passenger.firstName.trim(),
+    lastName: passenger.lastName.trim(),
+    dateOfBirth: passenger.dateOfBirth.trim(),
+    documentNumber: passenger.documentNumber.trim(),
+  };
+}
+
+function withoutId(row: PassengerRow): BookingPassengerValues {
+  return {
+    firstName: row.firstName,
+    lastName: row.lastName,
+    dateOfBirth: row.dateOfBirth,
+    documentNumber: row.documentNumber,
+  };
+}
 
 export function BookingForm({
-  flightLabel,
-  initialValues = defaultBookingValues,
+  flightSlot,
+  unitPrice,
+  initialValues,
+  seatsAvailable,
   submitDisabled = false,
+  submitting = false,
+  externalError = null,
+  onDismissExternalError,
   onSubmit,
 }: BookingFormProps) {
-  const [email, setEmail] = useState(initialValues.email);
-  const [phone, setPhone] = useState(initialValues.phone);
-  const [passengers, setPassengers] = useState(initialValues.passengers);
+  const idSeed = useRef(0);
+  const allocateId = () => {
+    idSeed.current += 1;
+    return `passenger-${idSeed.current}`;
+  };
+
+  const [values, setValues] = useState(() => {
+    const initial = initialValues ?? createEmptyBookingValues();
+    return {
+      email: initial.email,
+      phone: initial.phone,
+      passengers: initial.passengers.map((passenger, index) => ({
+        id: `passenger-init-${index}`,
+        ...passenger,
+      })),
+    };
+  });
+  const { email, phone, passengers } = values;
+  const [feedback, setFeedback] = useState<FormFeedback>(createEmptyFeedback);
+  const formInstanceId = useId();
+  const errorId = useId();
+
+  const passengerLimit = Math.min(
+    MAX_BOOKING_PASSENGERS,
+    seatsAvailable ?? MAX_BOOKING_PASSENGERS,
+  );
+  const canAddPassenger = passengers.length < passengerLimit;
+  const seatsShortage =
+    seatsAvailable != null && passengers.length > seatsAvailable;
+
+  function clearFieldError(fieldKey: string) {
+    onDismissExternalError?.();
+    setFeedback((current) => {
+      if (!current.invalidFields.has(fieldKey)) {
+        return current;
+      }
+
+      const nextFields = new Set(current.invalidFields);
+      nextFields.delete(fieldKey);
+      return {
+        message: nextFields.size === 0 ? null : current.message,
+        invalidFields: nextFields,
+      };
+    });
+  }
 
   function updatePassenger(
     index: number,
-    field: keyof PassengerValues,
+    field: keyof BookingPassengerValues,
     value: string,
   ) {
-    setPassengers((current) =>
-      current.map((passenger, i) =>
+    setValues((current) => ({
+      ...current,
+      passengers: current.passengers.map((passenger, i) =>
         i === index ? { ...passenger, [field]: value } : passenger,
       ),
-    );
+    }));
+    clearFieldError(`passengers.${index}.${field}`);
+  }
+
+  function removePassenger(index: number) {
+    setValues((current) => ({
+      ...current,
+      passengers: current.passengers.filter((_, i) => i !== index),
+    }));
+    setFeedback(createEmptyFeedback());
+    onDismissExternalError?.();
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitDisabled) {
+    if (submitDisabled || submitting || seatsShortage) {
       return;
     }
-    onSubmit?.({ email, phone, passengers });
+
+    const nextValues: BookingFormValues = {
+      email: email.trim(),
+      phone: phone.trim(),
+      passengers: passengers.map((row) => trimPassenger(withoutId(row))),
+    };
+
+    const { message, invalidFields: nextInvalid } = validateBooking(
+      nextValues,
+      { seatsAvailable },
+    );
+    if (message) {
+      setFeedback({
+        message,
+        invalidFields: new Set(nextInvalid),
+      });
+      return;
+    }
+
+    setFeedback(createEmptyFeedback());
+    onSubmit?.(nextValues);
   }
+
+  const visibleError = feedback.message ?? externalError;
+  const errorDescribedBy = visibleError ? errorId : undefined;
+  const { invalidFields } = feedback;
+  const totalLabel =
+    unitPrice && passengers.length > 1
+      ? `Итого: ${formatPrice(totalMoney(unitPrice, passengers.length))}`
+      : null;
 
   return (
     <form
       className={styles.form}
       data-testid="booking-form"
+      noValidate
       onSubmit={handleSubmit}
+      aria-labelledby={formInstanceId}
     >
-      <h2 className={styles.heading} data-testid="booking-heading">
+      <h2
+        className={styles.heading}
+        data-testid="booking-heading"
+        id={formInstanceId}
+      >
         Оформление бронирования
       </h2>
 
-      <p className={styles.flightSummary} data-testid="booking-flight-summary">
-        {flightLabel}
-      </p>
+      {flightSlot?.(passengers.length)}
 
       <div className={styles.contact} data-testid="booking-contact">
         <label className={styles.field}>
@@ -81,8 +206,19 @@ export function BookingForm({
             type="email"
             name="email"
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(event) => {
+              setValues((current) => ({
+                ...current,
+                email: event.target.value,
+              }));
+              clearFieldError('email');
+            }}
             autoComplete="email"
+            disabled={submitting}
+            aria-invalid={invalidFields.has('email') || undefined}
+            aria-describedby={
+              invalidFields.has('email') ? errorDescribedBy : undefined
+            }
             data-testid="contact-email"
           />
         </label>
@@ -94,8 +230,19 @@ export function BookingForm({
             type="tel"
             name="phone"
             value={phone}
-            onChange={(event) => setPhone(event.target.value)}
+            onChange={(event) => {
+              setValues((current) => ({
+                ...current,
+                phone: event.target.value,
+              }));
+              clearFieldError('phone');
+            }}
             autoComplete="tel"
+            disabled={submitting}
+            aria-invalid={invalidFields.has('phone') || undefined}
+            aria-describedby={
+              invalidFields.has('phone') ? errorDescribedBy : undefined
+            }
             data-testid="contact-phone"
           />
         </label>
@@ -105,92 +252,62 @@ export function BookingForm({
         Пассажиры
       </div>
 
+      {seatsShortage ? (
+        <p
+          className={styles.seatsWarning}
+          data-testid="booking-seats-warning"
+          role="alert"
+        >
+          {BOOKING_SEATS_ERROR}
+        </p>
+      ) : null}
+
       <ul className={styles.passengers} data-testid="passengers-list">
         {passengers.map((passenger, index) => (
-          <li
-            key={index}
-            className={styles.passengerCard}
-            data-testid="passenger-item"
-          >
-            <label className={styles.field}>
-              <span className={styles.label}>Имя</span>
-              <input
-                className={styles.input}
-                type="text"
-                name={`passengers.${index}.firstName`}
-                value={passenger.firstName}
-                onChange={(event) =>
-                  updatePassenger(index, 'firstName', event.target.value)
-                }
-                autoComplete="given-name"
-                data-testid="passenger-first-name"
-              />
-            </label>
-
-            <label className={styles.field}>
-              <span className={styles.label}>Фамилия</span>
-              <input
-                className={styles.input}
-                type="text"
-                name={`passengers.${index}.lastName`}
-                value={passenger.lastName}
-                onChange={(event) =>
-                  updatePassenger(index, 'lastName', event.target.value)
-                }
-                autoComplete="family-name"
-                data-testid="passenger-last-name"
-              />
-            </label>
-
-            <label className={styles.field}>
-              <span className={styles.label}>Дата рождения</span>
-              <input
-                className={styles.input}
-                type="date"
-                name={`passengers.${index}.dateOfBirth`}
-                value={passenger.dateOfBirth}
-                onChange={(event) =>
-                  updatePassenger(index, 'dateOfBirth', event.target.value)
-                }
-                data-testid="passenger-birth-date"
-              />
-            </label>
-
-            <label className={styles.field}>
-              <span className={styles.label}>Документ</span>
-              <input
-                className={styles.input}
-                type="text"
-                name={`passengers.${index}.documentNumber`}
-                value={passenger.documentNumber}
-                onChange={(event) =>
-                  updatePassenger(index, 'documentNumber', event.target.value)
-                }
-                data-testid="passenger-document"
-              />
-            </label>
-          </li>
+          <PassengerFields
+            key={passenger.id}
+            index={index}
+            value={withoutId(passenger)}
+            invalidFields={invalidFields}
+            errorId={errorDescribedBy}
+            canRemove={passengers.length > 1}
+            disabled={submitting}
+            onChange={(field, value) => updatePassenger(index, field, value)}
+            onRemove={() => removePassenger(index)}
+          />
         ))}
       </ul>
 
-      <div className={styles.actions}>
-        <button
-          className={styles.secondary}
-          type="button"
-          data-testid="add-passenger-button"
-          onClick={() => setPassengers((current) => [...current, emptyPassenger()])}
+      <BookingFormActions
+        canAddPassenger={canAddPassenger}
+        submitting={submitting}
+        submitDisabled={submitDisabled}
+        seatsShortage={seatsShortage}
+        totalLabel={totalLabel}
+        onAddPassenger={() => {
+          if (!canAddPassenger || submitting) {
+            return;
+          }
+          setValues((current) => ({
+            ...current,
+            passengers: [
+              ...current.passengers,
+              { id: allocateId(), ...emptyPassenger() },
+            ],
+          }));
+        }}
+      />
+
+      {visibleError ? (
+        <p
+          className={styles.error}
+          data-testid="booking-error"
+          id={errorId}
+          role="alert"
         >
-          Добавить пассажира
-        </button>
-        <button
-          className={styles.primary}
-          type="submit"
-          disabled={submitDisabled}
-          data-testid="submit-booking-button"
-        >
-          Забронировать
-        </button>
-      </div>
+          {visibleError}
+        </p>
+      ) : null}
     </form>
   );
 }

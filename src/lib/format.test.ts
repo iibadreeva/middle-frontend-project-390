@@ -5,6 +5,7 @@ import {
   formatPrice,
   isValidIsoDate,
   todayIsoDate,
+  totalMoney,
 } from './format';
 import { clearWarnedTimeZones } from './timeZoneSupport';
 
@@ -19,6 +20,15 @@ describe('formatPrice', () => {
     const formatted = formatPrice({ amount: 100, currency: 'USD' });
     const normalized = formatted.replace(/\u00a0|\u202f/g, ' ');
     expect(normalized).toBe('100 USD');
+  });
+});
+
+describe('totalMoney', () => {
+  it('multiplies the unit amount by passenger count', () => {
+    expect(totalMoney({ amount: 5400, currency: 'RUB' }, 3)).toEqual({
+      amount: 16200,
+      currency: 'RUB',
+    });
   });
 });
 

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { City, Flight } from '../../api';
-import { formatDateTime, formatDuration, formatPrice } from '../../lib/format';
+import { formatDateTime, formatDuration, formatPrice, totalMoney } from '../../lib/format';
 import { resolveFlightCityTimeZone } from '../../lib/resolveCityTimeZone';
 import styles from './FlightCard.module.css';
 
@@ -59,20 +59,27 @@ export function FlightCard({ flight, passengers, cities }: FlightCardProps) {
         </p>
         {passengers > 1 ? (
           <p className={styles.total} data-testid="flight-total-price">
-            Итого:{' '}
-            {formatPrice({
-              amount: flight.price.amount * passengers,
-              currency: flight.price.currency,
-            })}
+            Итого: {formatPrice(totalMoney(flight.price, passengers))}
           </p>
         ) : null}
-        <Link
-          className={styles.book}
-          to={`/booking/${flight.id}`}
-          data-testid="book-flight"
-        >
-          Забронировать
-        </Link>
+        {seatsShortage ? (
+          <button
+            className={styles.book}
+            type="button"
+            disabled
+            data-testid="book-flight"
+          >
+            Забронировать
+          </button>
+        ) : (
+          <Link
+            className={styles.book}
+            to={`/booking/${flight.id}`}
+            data-testid="book-flight"
+          >
+            Забронировать
+          </Link>
+        )}
       </div>
     </article>
   );

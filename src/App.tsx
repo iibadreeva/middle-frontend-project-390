@@ -1,6 +1,5 @@
 import { Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
-import { BookingConfirmationPage } from './pages/BookingConfirmationPage';
 import { BookingPage } from './pages/BookingPage';
 import { BookingViewPage } from './pages/BookingViewPage';
 import { FlightsRedirect } from './pages/FlightsRedirect';
@@ -15,10 +14,6 @@ export function App() {
         <Route path="flights" element={<FlightsRedirect />} />
         <Route path="booking/:flightId" element={<BookingPage />} />
         <Route path="bookings" element={<BookingViewPage />} />
-        <Route
-          path="bookings/:code/confirmation"
-          element={<BookingConfirmationPage />}
-        />
         <Route path="bookings/:code" element={<BookingViewPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
