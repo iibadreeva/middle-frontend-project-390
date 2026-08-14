@@ -6,9 +6,12 @@ import {
   Routes,
   useNavigate,
 } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FLIGHT_NOT_FOUND } from '../lib/messages';
-import { fixtureBooking, fixtureFlights } from '../test/fixtures';
+import { stubBookingApiFetch } from '../test/apiFetch';
+import { fixtureBooking, fixtureCities, fixtureFlights } from '../test/fixtures';
+import { TestProviders } from '../test/providers';
+import { createTestStore } from '../test/store';
 import { BookingPage } from './BookingPage';
 
 const fixtureFlight = fixtureFlights[0];
@@ -25,12 +28,14 @@ function RouteSwitcher() {
 
 function renderBooking(path: string) {
   return render(
-    <MemoryRouter initialEntries={[path]}>
-      <RouteSwitcher />
-      <Routes>
-        <Route path="/booking/:flightId" element={<BookingPage />} />
-      </Routes>
-    </MemoryRouter>,
+    <TestProviders cities={fixtureCities}>
+      <MemoryRouter initialEntries={[path]}>
+        <RouteSwitcher />
+        <Routes>
+          <Route path="/booking/:flightId" element={<BookingPage />} />
+        </Routes>
+      </MemoryRouter>
+    </TestProviders>,
   );
 }
 
@@ -44,20 +49,20 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('BookingPage', () => {
-  beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn());
-  });
-
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
   it('shows flight-not-found when the flight is missing', async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      Response.json(
-        { code: 'not_found', message: 'missing' },
-        { status: 404 },
-      ),
+    vi.stubGlobal(
+      'fetch',
+      stubBookingApiFetch({
+        flightById: () =>
+          Response.json(
+            { code: 'not_found', message: 'missing' },
+            { status: 404 },
+          ),
+      }),
     );
 
     renderBooking('/booking/missing');
@@ -71,7 +76,7 @@ describe('BookingPage', () => {
   });
 
   it('shows the flight and enables submit after load', async () => {
-    vi.mocked(fetch).mockResolvedValue(Response.json(fixtureFlight));
+    vi.stubGlobal('fetch', stubBookingApiFetch());
 
     renderBooking('/booking/fl_1');
 
@@ -85,9 +90,13 @@ describe('BookingPage', () => {
 
   it('creates a booking and shows the success panel', async () => {
     const user = userEvent.setup();
-    vi.mocked(fetch)
-      .mockResolvedValueOnce(Response.json(fixtureFlight))
-      .mockResolvedValueOnce(Response.json(fixtureBooking(), { status: 201 }));
+    vi.stubGlobal(
+      'fetch',
+      stubBookingApiFetch({
+        createBooking: () =>
+          Response.json(fixtureBooking(), { status: 201 }),
+      }),
+    );
 
     renderBooking('/booking/fl_1');
 
@@ -107,14 +116,16 @@ describe('BookingPage', () => {
 
   it('shows booking-error when create fails with validation', async () => {
     const user = userEvent.setup();
-    vi.mocked(fetch)
-      .mockResolvedValueOnce(Response.json(fixtureFlight))
-      .mockResolvedValueOnce(
-        Response.json(
-          { code: 'validation_error', message: 'Укажите flightId' },
-          { status: 400 },
-        ),
-      );
+    vi.stubGlobal(
+      'fetch',
+      stubBookingApiFetch({
+        createBooking: () =>
+          Response.json(
+            { code: 'validation_error', message: 'Укажите flightId' },
+            { status: 400 },
+          ),
+      }),
+    );
 
     renderBooking('/booking/fl_1');
 
@@ -135,14 +146,22 @@ describe('BookingPage', () => {
 
   it('retries flight loading after an error', async () => {
     const user = userEvent.setup();
-    vi.mocked(fetch)
-      .mockResolvedValueOnce(
-        Response.json(
-          { code: 'server_error', message: 'boom' },
-          { status: 500 },
-        ),
-      )
-      .mockResolvedValueOnce(Response.json(fixtureFlight));
+    let flightAttempts = 0;
+    vi.stubGlobal(
+      'fetch',
+      stubBookingApiFetch({
+        flightById: () => {
+          flightAttempts += 1;
+          if (flightAttempts === 1) {
+            return Response.json(
+              { code: 'server_error', message: 'boom' },
+              { status: 500 },
+            );
+          }
+          return Response.json(fixtureFlight);
+        },
+      }),
+    );
 
     renderBooking('/booking/fl_1');
 
@@ -162,14 +181,15 @@ describe('BookingPage', () => {
 
   it('clears booking result when navigating to another flight', async () => {
     const user = userEvent.setup();
-    vi.mocked(fetch)
-      .mockResolvedValueOnce(Response.json(fixtureFlights[0]))
-      .mockResolvedValueOnce(
-        Response.json(fixtureBooking({ flight: fixtureFlights[0] }), {
-          status: 201,
-        }),
-      )
-      .mockResolvedValueOnce(Response.json(fixtureFlights[1]));
+    vi.stubGlobal(
+      'fetch',
+      stubBookingApiFetch({
+        createBooking: () =>
+          Response.json(fixtureBooking({ flight: fixtureFlights[0] }), {
+            status: 201,
+          }),
+      }),
+    );
 
     renderBooking('/booking/fl_1');
 
@@ -193,5 +213,55 @@ describe('BookingPage', () => {
     });
     expect(screen.queryByTestId('booking-success')).not.toBeInTheDocument();
     expect(screen.getByTestId('booking-form')).toBeInTheDocument();
+  });
+
+  it('does not keep success after leaving and returning to the same flight', async () => {
+    const user = userEvent.setup();
+    const store = createTestStore({ cities: fixtureCities });
+    vi.stubGlobal(
+      'fetch',
+      stubBookingApiFetch({
+        createBooking: () =>
+          Response.json(fixtureBooking(), { status: 201 }),
+      }),
+    );
+
+    const view = render(
+      <TestProviders store={store}>
+        <MemoryRouter initialEntries={['/booking/fl_1']}>
+          <Routes>
+            <Route path="/booking/:flightId" element={<BookingPage />} />
+          </Routes>
+        </MemoryRouter>
+      </TestProviders>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('booking-submit')).toBeEnabled();
+    });
+
+    await fillValidForm(user);
+    await user.click(screen.getByTestId('booking-submit'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('booking-success')).toBeInTheDocument();
+    });
+
+    view.unmount();
+
+    render(
+      <TestProviders store={store}>
+        <MemoryRouter initialEntries={['/booking/fl_1']}>
+          <Routes>
+            <Route path="/booking/:flightId" element={<BookingPage />} />
+          </Routes>
+        </MemoryRouter>
+      </TestProviders>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('booking-form')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('booking-success')).not.toBeInTheDocument();
   });
 });

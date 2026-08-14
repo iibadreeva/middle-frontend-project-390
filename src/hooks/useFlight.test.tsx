@@ -1,9 +1,15 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureFlights } from '../test/fixtures';
+import { TestProviders } from '../test/providers';
 import { useFlight } from './useFlight';
 
 const fixtureFlight = fixtureFlights[0];
+
+function wrapper({ children }: { children: ReactNode }) {
+  return <TestProviders>{children}</TestProviders>;
+}
 
 describe('useFlight', () => {
   beforeEach(() => {
@@ -17,7 +23,7 @@ describe('useFlight', () => {
   it('starts in loading and then returns the flight', async () => {
     vi.mocked(fetch).mockResolvedValue(Response.json(fixtureFlight));
 
-    const { result } = renderHook(() => useFlight('fl_1'));
+    const { result } = renderHook(() => useFlight('fl_1'), { wrapper });
 
     expect(result.current.status).toBe('loading');
     expect(result.current.flight).toBeNull();
@@ -36,7 +42,7 @@ describe('useFlight', () => {
       ),
     );
 
-    const { result } = renderHook(() => useFlight('missing'));
+    const { result } = renderHook(() => useFlight('missing'), { wrapper });
 
     await waitFor(() => {
       expect(result.current.status).toBe('not-found');
@@ -52,7 +58,7 @@ describe('useFlight', () => {
       ),
     );
 
-    const { result } = renderHook(() => useFlight('fl_1'));
+    const { result } = renderHook(() => useFlight('fl_1'), { wrapper });
 
     await waitFor(() => {
       expect(result.current.status).toBe('error');
@@ -61,7 +67,7 @@ describe('useFlight', () => {
   });
 
   it('maps a missing flightId to not-found', () => {
-    const { result } = renderHook(() => useFlight(undefined));
+    const { result } = renderHook(() => useFlight(undefined), { wrapper });
 
     expect(result.current.status).toBe('not-found');
     expect(result.current.flight).toBeNull();
@@ -78,7 +84,7 @@ describe('useFlight', () => {
       )
       .mockResolvedValueOnce(Response.json(fixtureFlight));
 
-    const { result } = renderHook(() => useFlight('fl_1'));
+    const { result } = renderHook(() => useFlight('fl_1'), { wrapper });
 
     await waitFor(() => {
       expect(result.current.status).toBe('error');

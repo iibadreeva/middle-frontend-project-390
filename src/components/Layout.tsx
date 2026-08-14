@@ -1,7 +1,11 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { useGetCitiesQuery } from '../store/api';
 import styles from './Layout.module.css';
 
 export function Layout() {
+  // Держим GET /api/cities в кэше для поиска и оформления брони.
+  useGetCitiesQuery();
+
   return (
     <div className={styles.shell} data-testid="app">
       <header className={styles.header} data-testid="app-header">

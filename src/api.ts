@@ -157,19 +157,29 @@ export function createBooking(
   });
 }
 
-export function getBooking(code: string, lastName: string): Promise<Booking> {
+export function getBooking(
+  code: string,
+  lastName: string,
+  signal?: AbortSignal,
+): Promise<Booking> {
   const query = new URLSearchParams({ lastName });
   return request<Booking>(
     `/api/bookings/${encodeURIComponent(code)}?${query}`,
+    { signal },
   );
 }
 
-export function cancelBooking(code: string, lastName: string): Promise<Booking> {
+export function cancelBooking(
+  code: string,
+  lastName: string,
+  signal?: AbortSignal,
+): Promise<Booking> {
   return request<Booking>(
     `/api/bookings/${encodeURIComponent(code)}/cancel`,
     {
       method: 'POST',
       body: JSON.stringify({ lastName }),
+      signal,
     },
   );
 }

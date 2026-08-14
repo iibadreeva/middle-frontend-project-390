@@ -1,4 +1,4 @@
-import type { City, Flight } from '../../api';
+import type { Flight } from '../../api';
 import type { RequestStatus } from '../../lib/requestStatus';
 import { FlightCard } from '../FlightCard/FlightCard';
 import styles from './FlightResults.module.css';
@@ -9,7 +9,6 @@ type FlightResultsProps =
       status: Extract<RequestStatus, 'success'>;
       flights: Flight[];
       passengers: number;
-      cities: readonly City[];
     }
   | { status: Extract<RequestStatus, 'error'>; errorMessage: string };
 
@@ -46,11 +45,7 @@ export function FlightResults(props: FlightResultsProps) {
     <ul className={styles.list} data-testid="flight-results">
       {props.flights.map((flight) => (
         <li key={flight.id}>
-          <FlightCard
-            flight={flight}
-            passengers={props.passengers}
-            cities={props.cities}
-          />
+          <FlightCard flight={flight} passengers={props.passengers} />
         </li>
       ))}
     </ul>

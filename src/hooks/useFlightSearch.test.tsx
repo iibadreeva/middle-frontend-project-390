@@ -4,6 +4,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FLIGHTS_SEARCH_ERROR, SEARCH_SAME_CITIES_ERROR } from '../lib/messages';
 import { fixtureCities, fixtureFlights, futureIsoDate } from '../test/fixtures';
+import { createTestStore } from '../test/store';
+import { TestProviders } from '../test/providers';
 import { useFlightSearch } from './useFlightSearch';
 
 const cities = fixtureCities;
@@ -11,12 +13,27 @@ const searchDate = futureIsoDate();
 const otherDate = futureIsoDate(35);
 const searchQuery = `/?origin=MOW&destination=LED&date=${searchDate}&passengers=1`;
 
-function createWrapper(initialEntry: string) {
+function createWrapper(
+  initialEntry: string,
+  options?: { preloadCities?: boolean },
+) {
+  const store = createTestStore(
+    options?.preloadCities === false ? undefined : { cities },
+  );
+
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <MemoryRouter initialEntries={[initialEntry]}>{children}</MemoryRouter>
+      <TestProviders store={store}>
+        <MemoryRouter initialEntries={[initialEntry]}>{children}</MemoryRouter>
+      </TestProviders>
     );
   };
+}
+
+function flightsFetchCalls() {
+  return vi
+    .mocked(fetch)
+    .mock.calls.filter((call) => String(call[0]).includes('/api/flights'));
 }
 
 describe('useFlightSearch', () => {
@@ -29,20 +46,23 @@ describe('useFlightSearch', () => {
   });
 
   it('does not request flights until cities are ready', () => {
-    const fetchMock = vi.mocked(fetch).mockResolvedValue(Response.json([]));
+    const fetchMock = vi.mocked(fetch).mockImplementation(
+      () => new Promise(() => {}),
+    );
 
-    const { result } = renderHook(() => useFlightSearch(cities, false), {
-      wrapper: createWrapper(searchQuery),
+    const { result } = renderHook(() => useFlightSearch(), {
+      wrapper: createWrapper(searchQuery, { preloadCities: false }),
     });
 
     expect(result.current.status).toBe('loading');
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(flightsFetchCalls()).toHaveLength(0);
+    expect(fetchMock).toHaveBeenCalled();
   });
 
   it('canonicalizes invalid URL params into resolved values', async () => {
     vi.mocked(fetch).mockResolvedValue(Response.json(fixtureFlights));
 
-    const { result } = renderHook(() => useFlightSearch(cities, true), {
+    const { result } = renderHook(() => useFlightSearch(), {
       wrapper: createWrapper(
         `/?origin=XXX&destination=YYY&date=${searchDate}&passengers=0`,
       ),
@@ -65,7 +85,7 @@ describe('useFlightSearch', () => {
     });
     vi.mocked(fetch).mockImplementation(() => gate);
 
-    const { result } = renderHook(() => useFlightSearch(cities, true), {
+    const { result } = renderHook(() => useFlightSearch(), {
       wrapper: createWrapper(searchQuery),
     });
 
@@ -90,7 +110,7 @@ describe('useFlightSearch', () => {
       ),
     );
 
-    const { result } = renderHook(() => useFlightSearch(cities, true), {
+    const { result } = renderHook(() => useFlightSearch(), {
       wrapper: createWrapper(searchQuery),
     });
 
@@ -106,7 +126,7 @@ describe('useFlightSearch', () => {
       new DOMException('aborted', 'AbortError'),
     );
 
-    const { result } = renderHook(() => useFlightSearch(cities, true), {
+    const { result } = renderHook(() => useFlightSearch(), {
       wrapper: createWrapper(searchQuery),
     });
 
@@ -121,7 +141,7 @@ describe('useFlightSearch', () => {
     const failure = new Error('network down');
     vi.mocked(fetch).mockRejectedValue(failure);
 
-    renderHook(() => useFlightSearch(cities, true), {
+    renderHook(() => useFlightSearch(), {
       wrapper: createWrapper(searchQuery),
     });
 
@@ -140,12 +160,16 @@ describe('useFlightSearch', () => {
         }),
     );
 
-    const { result, unmount } = renderHook(
-      () => useFlightSearch(cities, true),
-      { wrapper: createWrapper(searchQuery) },
-    );
+    const { result, unmount } = renderHook(() => useFlightSearch(), {
+      wrapper: createWrapper(searchQuery),
+    });
 
     expect(result.current.status).toBe('loading');
+
+    await waitFor(() => {
+      expect(flightsFetchCalls().length).toBeGreaterThan(0);
+    });
+
     unmount();
 
     await act(async () => {
@@ -159,7 +183,7 @@ describe('useFlightSearch', () => {
   it('does not request flights when origin and destination match', async () => {
     const fetchMock = vi.mocked(fetch).mockResolvedValue(Response.json([]));
 
-    const { result } = renderHook(() => useFlightSearch(cities, true), {
+    const { result } = renderHook(() => useFlightSearch(), {
       wrapper: createWrapper(
         `/?origin=MOW&destination=MOW&date=${searchDate}&passengers=1`,
       ),
@@ -168,13 +192,15 @@ describe('useFlightSearch', () => {
     await waitFor(() => {
       expect(result.current.valuesError).toBe(SEARCH_SAME_CITIES_ERROR);
     });
+    expect(result.current.status).toBe('success');
+    expect(flightsFetchCalls()).toHaveLength(0);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('updates search params on submit', async () => {
     vi.mocked(fetch).mockResolvedValue(Response.json(fixtureFlights));
 
-    const { result } = renderHook(() => useFlightSearch(cities, true), {
+    const { result } = renderHook(() => useFlightSearch(), {
       wrapper: createWrapper(searchQuery),
     });
 
@@ -201,7 +227,7 @@ describe('useFlightSearch', () => {
     });
 
     await waitFor(() => {
-      const lastCallUrl = String(vi.mocked(fetch).mock.calls.at(-1)?.[0] ?? '');
+      const lastCallUrl = String(flightsFetchCalls().at(-1)?.[0] ?? '');
       const query = new URL(lastCallUrl, 'http://localhost').searchParams;
 
       expect(query.get('origin')).toBe('LED');

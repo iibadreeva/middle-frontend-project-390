@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import type { City, Flight } from '../../api';
 import { fixtureCities, fixtureFlights } from '../../test/fixtures';
+import { TestProviders } from '../../test/providers';
 import { FlightCard } from './FlightCard';
 
 const flight = fixtureFlights[0];
@@ -15,13 +16,14 @@ function renderCard(
   } = {},
 ) {
   return render(
-    <MemoryRouter>
-      <FlightCard
-        flight={props.flight ?? flight}
-        passengers={props.passengers ?? 1}
-        cities={props.cities ?? fixtureCities}
-      />
-    </MemoryRouter>,
+    <TestProviders cities={props.cities ?? fixtureCities}>
+      <MemoryRouter>
+        <FlightCard
+          flight={props.flight ?? flight}
+          passengers={props.passengers ?? 1}
+        />
+      </MemoryRouter>
+    </TestProviders>,
   );
 }
 

@@ -1,6 +1,7 @@
 import type { Flight } from '../../api';
+import { useCities } from '../../hooks/useCities';
 import { formatDateTime, formatPrice, totalMoney } from '../../lib/format';
-import { resolveCityTimeZone } from '../../lib/resolveCityTimeZone';
+import { resolveFlightCityTimeZone } from '../../lib/resolveCityTimeZone';
 import styles from './BookingFlight.module.css';
 
 type BookingFlightProps = {
@@ -9,8 +10,9 @@ type BookingFlightProps = {
 };
 
 export function BookingFlight({ flight, passengers }: BookingFlightProps) {
-  const departureZone = resolveCityTimeZone(flight.origin);
-  const arrivalZone = resolveCityTimeZone(flight.destination);
+  const { cities } = useCities();
+  const departureZone = resolveFlightCityTimeZone(cities, flight.origin);
+  const arrivalZone = resolveFlightCityTimeZone(cities, flight.destination);
 
   return (
     <div className={styles.summary} data-testid="booking-flight">

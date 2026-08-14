@@ -1,20 +1,20 @@
 import { FlightResults } from '../components/FlightResults/FlightResults';
 import { SearchForm } from '../components/SearchForm/SearchForm';
-import { useCities } from '../hooks/useCities';
 import { useFlightSearch } from '../hooks/useFlightSearch';
 import { FLIGHTS_SEARCH_ERROR } from '../lib/messages';
 import styles from './Page.module.css';
 
 export function SearchPage() {
-  const { cities, notice: citiesNotice, ready: citiesReady } = useCities();
   const {
+    cities,
+    citiesNotice,
     values,
     valuesError,
     status,
     flights,
     errorMessage,
     submit,
-  } = useFlightSearch(cities, citiesReady);
+  } = useFlightSearch();
 
   let results = null;
   if (!valuesError) {
@@ -33,7 +33,6 @@ export function SearchPage() {
           status="success"
           flights={flights}
           passengers={values.passengers}
-          cities={cities}
         />
       );
     }

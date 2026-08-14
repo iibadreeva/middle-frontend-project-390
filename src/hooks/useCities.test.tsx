@@ -1,8 +1,14 @@
 import { renderHook, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FALLBACK_CITIES } from '../data/fallbackCities';
 import { CITIES_FALLBACK_NOTICE } from '../lib/messages';
+import { TestProviders } from '../test/providers';
 import { useCities } from './useCities';
+
+function wrapper({ children }: { children: ReactNode }) {
+  return <TestProviders>{children}</TestProviders>;
+}
 
 describe('useCities', () => {
   beforeEach(() => {
@@ -16,7 +22,7 @@ describe('useCities', () => {
   it('starts with fallback cities before the API responds', () => {
     vi.mocked(fetch).mockImplementation(() => new Promise(() => {}));
 
-    const { result } = renderHook(() => useCities());
+    const { result } = renderHook(() => useCities(), { wrapper });
 
     expect(result.current.cities).toEqual(FALLBACK_CITIES);
     expect(result.current.notice).toBeNull();
@@ -30,7 +36,7 @@ describe('useCities', () => {
     ];
     vi.mocked(fetch).mockResolvedValue(Response.json(apiCities));
 
-    const { result } = renderHook(() => useCities());
+    const { result } = renderHook(() => useCities(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.cities).toEqual(apiCities);
@@ -47,7 +53,7 @@ describe('useCities', () => {
       ),
     );
 
-    const { result } = renderHook(() => useCities());
+    const { result } = renderHook(() => useCities(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.notice).toBe(CITIES_FALLBACK_NOTICE);
@@ -59,7 +65,7 @@ describe('useCities', () => {
   it('keeps fallback cities and sets notice when cities API returns an empty list', async () => {
     vi.mocked(fetch).mockResolvedValue(Response.json([]));
 
-    const { result } = renderHook(() => useCities());
+    const { result } = renderHook(() => useCities(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.ready).toBe(true);

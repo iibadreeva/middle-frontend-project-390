@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import type { City, Flight } from '../../api';
+import type { Flight } from '../../api';
+import { useCities } from '../../hooks/useCities';
 import { formatDateTime, formatDuration, formatPrice, totalMoney } from '../../lib/format';
 import { resolveFlightCityTimeZone } from '../../lib/resolveCityTimeZone';
 import styles from './FlightCard.module.css';
@@ -7,11 +8,10 @@ import styles from './FlightCard.module.css';
 type FlightCardProps = {
   flight: Flight;
   passengers: number;
-  /** Список /api/cities — приоритетнее вложенного города в рейсе для timeZone. */
-  cities: readonly City[];
 };
 
-export function FlightCard({ flight, passengers, cities }: FlightCardProps) {
+export function FlightCard({ flight, passengers }: FlightCardProps) {
+  const { cities } = useCities();
   const seatsShortage = flight.seatsAvailable < passengers;
   const departureZone = resolveFlightCityTimeZone(cities, flight.origin);
   const arrivalZone = resolveFlightCityTimeZone(cities, flight.destination);

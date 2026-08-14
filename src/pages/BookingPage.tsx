@@ -45,6 +45,14 @@ export function BookingPage() {
     });
   }
 
+  if (createStatus === 'success' && booking) {
+    return (
+      <section className={styles.page} data-testid="booking-page">
+        <BookingSuccess booking={booking} />
+      </section>
+    );
+  }
+
   if (flightStatus === 'not-found') {
     return (
       <section className={styles.page} data-testid="booking-page">
@@ -73,14 +81,6 @@ export function BookingPage() {
         >
           Повторить
         </button>
-      </section>
-    );
-  }
-
-  if (createStatus === 'success' && booking) {
-    return (
-      <section className={styles.page} data-testid="booking-page">
-        <BookingSuccess booking={booking} />
       </section>
     );
   }

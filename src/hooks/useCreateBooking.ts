@@ -1,27 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import {
-  createBooking,
   type Booking,
   type CreateBookingRequest,
 } from '../api';
-import { ApiError } from '../lib/errors';
 import { BOOKING_CREATE_ERROR } from '../lib/messages';
+import {
+  getQueryErrorMessage,
+  getQueryErrorStatus,
+  useCreateBookingMutation,
+} from '../store/api';
 
 export type CreateBookingStatus = 'idle' | 'submitting' | 'success' | 'error';
 
-type CreateBookingResult = {
-  scopeKey: string | undefined;
-  status: CreateBookingStatus;
-  booking: Booking | null;
-  errorMessage: string | null;
-};
-
-const idleResult = (scopeKey: string | undefined): CreateBookingResult => ({
-  scopeKey,
-  status: 'idle',
-  booking: null,
-  errorMessage: null,
-});
+type MutationPromise = ReturnType<
+  ReturnType<typeof useCreateBookingMutation>[0]
+>;
 
 export function useCreateBooking(scopeKey?: string): {
   status: CreateBookingStatus;
@@ -30,40 +23,30 @@ export function useCreateBooking(scopeKey?: string): {
   submit: (body: CreateBookingRequest) => void;
   clearError: () => void;
 } {
-  const [result, setResult] = useState<CreateBookingResult>(() =>
-    idleResult(scopeKey),
-  );
+  const fixedCacheKey = scopeKey ?? '';
+  const [createBooking, result] = useCreateBookingMutation({
+    fixedCacheKey,
+  });
   const inFlightRef = useRef(false);
-  const controllerRef = useRef<AbortController | null>(null);
-  const scopeKeyRef = useRef(scopeKey);
-
-  if (result.scopeKey !== scopeKey) {
-    setResult(idleResult(scopeKey));
-  }
+  const promiseRef = useRef<MutationPromise | null>(null);
 
   useEffect(() => {
-    return () => controllerRef.current?.abort();
-  }, []);
-
-  useEffect(() => {
-    if (scopeKeyRef.current === scopeKey) {
-      return;
-    }
-
-    scopeKeyRef.current = scopeKey;
-    controllerRef.current?.abort();
-    controllerRef.current = null;
-    inFlightRef.current = false;
-  }, [scopeKey]);
+    const reset = result.reset;
+    return () => {
+      promiseRef.current?.abort();
+      promiseRef.current = null;
+      inFlightRef.current = false;
+      reset();
+    };
+    // Сбрасываем только при размонтировании или смене рейса:
+    // ссылка `result.reset` нестабильна и не должна быть в зависимостях.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fixedCacheKey]);
 
   function clearError() {
-    setResult((current) => {
-      if (current.scopeKey !== scopeKey || current.status !== 'error') {
-        return current;
-      }
-
-      return idleResult(scopeKey);
-    });
+    if (result.isError) {
+      result.reset();
+    }
   }
 
   function submit(body: CreateBookingRequest) {
@@ -72,59 +55,40 @@ export function useCreateBooking(scopeKey?: string): {
     }
 
     inFlightRef.current = true;
-    setResult({
-      scopeKey,
-      status: 'submitting',
-      booking: null,
-      errorMessage: null,
+    const promise = createBooking(body);
+    promiseRef.current = promise;
+
+    void promise.finally(() => {
+      if (promiseRef.current === promise) {
+        inFlightRef.current = false;
+        promiseRef.current = null;
+      }
     });
-
-    const controller = new AbortController();
-    controllerRef.current = controller;
-
-    createBooking(body, controller.signal)
-      .then((nextBooking) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        setResult({
-          scopeKey,
-          status: 'success',
-          booking: nextBooking,
-          errorMessage: null,
-        });
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        console.error(error);
-        const message =
-          error instanceof ApiError && error.status === 400 && error.message
-            ? error.message
-            : BOOKING_CREATE_ERROR;
-        setResult({
-          scopeKey,
-          status: 'error',
-          booking: null,
-          errorMessage: message,
-        });
-      })
-      .finally(() => {
-        if (controllerRef.current === controller) {
-          inFlightRef.current = false;
-          controllerRef.current = null;
-        }
-      });
   }
 
-  const visible =
-    result.scopeKey === scopeKey ? result : idleResult(scopeKey);
+  let status: CreateBookingStatus = 'idle';
+  if (result.isLoading) {
+    status = 'submitting';
+  } else if (result.isSuccess) {
+    status = 'success';
+  } else if (result.isError) {
+    status = 'error';
+  }
+
+  let errorMessage: string | null = null;
+  if (status === 'error') {
+    const serverMessage = getQueryErrorMessage(result.error);
+    if (getQueryErrorStatus(result.error) === 400 && serverMessage) {
+      errorMessage = serverMessage;
+    } else {
+      errorMessage = BOOKING_CREATE_ERROR;
+    }
+  }
 
   return {
-    status: visible.status,
-    booking: visible.booking,
-    errorMessage: visible.errorMessage,
+    status,
+    booking: result.isSuccess ? (result.data ?? null) : null,
+    errorMessage,
     submit,
     clearError,
   };

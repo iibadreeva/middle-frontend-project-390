@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { fixtureFlights } from '../../test/fixtures';
+import { fixtureCities, fixtureFlights } from '../../test/fixtures';
+import { TestProviders } from '../../test/providers';
 import { BookingFlight } from './BookingFlight';
 
 function normalize(value: string | null | undefined) {
@@ -11,7 +12,11 @@ describe('BookingFlight', () => {
   const flight = fixtureFlights[0];
 
   it('shows unit price without a total for one passenger', () => {
-    render(<BookingFlight flight={flight} passengers={1} />);
+    render(
+      <TestProviders cities={fixtureCities}>
+        <BookingFlight flight={flight} passengers={1} />
+      </TestProviders>,
+    );
 
     expect(normalize(screen.getByTestId('booking-flight').textContent)).toContain(
       '5 400 ₽ за пассажира',
@@ -22,7 +27,11 @@ describe('BookingFlight', () => {
   });
 
   it('shows total price for multiple passengers', () => {
-    render(<BookingFlight flight={flight} passengers={3} />);
+    render(
+      <TestProviders cities={fixtureCities}>
+        <BookingFlight flight={flight} passengers={3} />
+      </TestProviders>,
+    );
 
     expect(
       normalize(screen.getByTestId('booking-flight-total-price').textContent),

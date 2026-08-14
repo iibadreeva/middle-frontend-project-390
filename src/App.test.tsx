@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { fixtureCities } from './test/fixtures';
+import { TestProviders } from './test/providers';
 
 describe('App', () => {
   beforeEach(() => {
@@ -27,9 +28,11 @@ describe('App', () => {
 
   it('renders search page on /', async () => {
     render(
-      <MemoryRouter initialEntries={['/']}>
-        <App />
-      </MemoryRouter>,
+      <TestProviders>
+        <MemoryRouter initialEntries={['/']}>
+          <App />
+        </MemoryRouter>
+      </TestProviders>,
     );
 
     expect(

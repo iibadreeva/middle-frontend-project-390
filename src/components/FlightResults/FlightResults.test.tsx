@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { fixtureCities, fixtureFlights } from '../../test/fixtures';
+import { TestProviders } from '../../test/providers';
 import { FlightResults } from './FlightResults';
 
 const flight = fixtureFlights[0];
@@ -19,7 +20,6 @@ describe('FlightResults', () => {
         status="success"
         flights={[]}
         passengers={1}
-        cities={fixtureCities}
       />,
     );
     expect(screen.getByTestId('flights-empty')).toHaveAttribute(
@@ -40,28 +40,30 @@ describe('FlightResults', () => {
 
   it('renders flight cards without a live region role', () => {
     render(
-      <MemoryRouter>
-        <FlightResults
-          status="success"
-          flights={[flight]}
-          passengers={1}
-          cities={fixtureCities}
-        />
-      </MemoryRouter>,
+      <TestProviders cities={fixtureCities}>
+        <MemoryRouter>
+          <FlightResults
+            status="success"
+            flights={[flight]}
+            passengers={1}
+          />
+        </MemoryRouter>
+      </TestProviders>,
     );
     expect(screen.getByTestId('flight-results')).not.toHaveAttribute('role');
   });
 
   it('passes the passengers count down to the cards', () => {
     render(
-      <MemoryRouter>
-        <FlightResults
-          status="success"
-          flights={[flight]}
-          passengers={2}
-          cities={fixtureCities}
-        />
-      </MemoryRouter>,
+      <TestProviders cities={fixtureCities}>
+        <MemoryRouter>
+          <FlightResults
+            status="success"
+            flights={[flight]}
+            passengers={2}
+          />
+        </MemoryRouter>
+      </TestProviders>,
     );
     expect(screen.getByTestId('flight-total-price')).toBeInTheDocument();
   });

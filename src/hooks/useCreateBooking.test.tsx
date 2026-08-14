@@ -1,9 +1,10 @@
 import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureBooking } from '../test/fixtures';
 import { BOOKING_CREATE_ERROR } from '../lib/messages';
+import { TestProviders } from '../test/providers';
 import { useCreateBooking } from './useCreateBooking';
 
 const booking = fixtureBooking();
@@ -13,6 +14,10 @@ const requestBody = {
   contact: booking.contact,
   passengers: booking.passengers,
 };
+
+function wrapper({ children }: { children: ReactNode }) {
+  return <TestProviders>{children}</TestProviders>;
+}
 
 describe('useCreateBooking', () => {
   beforeEach(() => {
@@ -28,7 +33,7 @@ describe('useCreateBooking', () => {
       Response.json(booking, { status: 201 }),
     );
 
-    const { result } = renderHook(() => useCreateBooking());
+    const { result } = renderHook(() => useCreateBooking(), { wrapper });
 
     expect(result.current.status).toBe('idle');
 
@@ -53,7 +58,7 @@ describe('useCreateBooking', () => {
       ),
     );
 
-    const { result } = renderHook(() => useCreateBooking());
+    const { result } = renderHook(() => useCreateBooking(), { wrapper });
 
     act(() => {
       result.current.submit(requestBody);
@@ -74,7 +79,7 @@ describe('useCreateBooking', () => {
       ),
     );
 
-    const { result } = renderHook(() => useCreateBooking());
+    const { result } = renderHook(() => useCreateBooking(), { wrapper });
 
     act(() => {
       result.current.submit(requestBody);
@@ -89,7 +94,7 @@ describe('useCreateBooking', () => {
   it('falls back to a generic message on network failure', async () => {
     vi.mocked(fetch).mockRejectedValue(new Error('offline'));
 
-    const { result } = renderHook(() => useCreateBooking());
+    const { result } = renderHook(() => useCreateBooking(), { wrapper });
 
     act(() => {
       result.current.submit(requestBody);
@@ -110,7 +115,7 @@ describe('useCreateBooking', () => {
         }),
     );
 
-    const { result } = renderHook(() => useCreateBooking());
+    const { result } = renderHook(() => useCreateBooking(), { wrapper });
 
     act(() => {
       result.current.submit(requestBody);
@@ -163,7 +168,7 @@ describe('useCreateBooking', () => {
     }
 
     const user = userEvent.setup();
-    render(<Harness />);
+    render(<Harness />, { wrapper });
 
     await user.click(screen.getByRole('button', { name: 'submit' }));
     expect(fetch).toHaveBeenCalledTimes(1);
@@ -216,7 +221,7 @@ describe('useCreateBooking', () => {
     }
 
     const user = userEvent.setup();
-    render(<Harness />);
+    render(<Harness />, { wrapper });
 
     await user.click(screen.getByRole('button', { name: 'submit' }));
     await waitFor(() => {
@@ -241,7 +246,7 @@ describe('useCreateBooking', () => {
       ),
     );
 
-    const { result } = renderHook(() => useCreateBooking('fl_1'));
+    const { result } = renderHook(() => useCreateBooking('fl_1'), { wrapper });
 
     act(() => {
       result.current.submit(requestBody);
