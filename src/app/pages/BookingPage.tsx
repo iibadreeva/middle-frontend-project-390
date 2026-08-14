@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   BookingFlight,
+  BookingFlightSkeleton,
   BookingForm,
   BookingSuccess,
   useCreateBooking,
@@ -119,11 +120,7 @@ function BookingFlightSlot({
   passengerCount: number;
 }) {
   if (!flight) {
-    return (
-      <p className={styles.empty} data-testid="booking-flight">
-        Загрузка рейса…
-      </p>
-    );
+    return <BookingFlightSkeleton />;
   }
 
   return <BookingFlight flight={flight} passengers={passengerCount} />;

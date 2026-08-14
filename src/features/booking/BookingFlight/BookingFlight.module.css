@@ -32,3 +32,40 @@
   font-size: 0.875rem;
   color: var(--color-text-muted);
 }
+
+.bone {
+  display: block;
+  border-radius: var(--radius-sm);
+  background: var(--color-border);
+  animation: bookingFlightPulse 1.2s ease-in-out infinite;
+}
+
+.boneAirline {
+  height: 1.125rem;
+  width: 55%;
+}
+
+.boneRoute {
+  height: 0.9375rem;
+  width: 70%;
+}
+
+.boneSchedule {
+  height: 0.9375rem;
+  width: 85%;
+}
+
+.bonePrice {
+  height: 0.9375rem;
+  width: 40%;
+}
+
+@keyframes bookingFlightPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}

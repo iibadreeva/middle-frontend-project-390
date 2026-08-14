@@ -90,6 +90,37 @@ describe('BookingPage', () => {
     expect(screen.getByTestId('booking-submit')).toBeEnabled();
   });
 
+  it('shows a flight skeleton while the flight is loading', async () => {
+    let resolveFlight!: (response: Response) => void;
+    const flightPromise = new Promise<Response>((resolve) => {
+      resolveFlight = resolve;
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      stubBookingApiFetch({
+        flightById: () => flightPromise,
+      }),
+    );
+
+    renderBooking(bookingHref('fl_1'));
+
+    const skeleton = screen.getByTestId('booking-flight');
+    expect(skeleton).toHaveAttribute('role', 'status');
+    expect(skeleton).toHaveAttribute('aria-busy', 'true');
+
+    resolveFlight(Response.json(fixtureFlight));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('booking-flight')).toHaveTextContent(
+        'Аэрофлот · SU1234',
+      );
+    });
+    expect(screen.getByTestId('booking-flight')).not.toHaveAttribute(
+      'aria-busy',
+    );
+  });
+
   it('creates a booking and shows the success panel', async () => {
     const user = userEvent.setup();
     vi.stubGlobal(

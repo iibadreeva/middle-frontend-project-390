@@ -4,6 +4,7 @@ export type {
   BookingPassengerValues,
 } from './BookingForm/BookingForm';
 export { BookingFlight } from './BookingFlight/BookingFlight';
+export { BookingFlightSkeleton } from './BookingFlight/BookingFlightSkeleton';
 export { BookingSuccess } from './BookingSuccess/BookingSuccess';
 export {
   BookingDetails,

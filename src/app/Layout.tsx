@@ -1,9 +1,11 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useGetCitiesQuery } from '@shared/store/api';
+import { ErrorBoundary } from '@shared/ui/ErrorBoundary';
 import { bookingsHref, homeHref } from './routes';
 import styles from './Layout.module.css';
 
 export function Layout() {
+  const location = useLocation();
   // Держим GET /api/cities в кэше для поиска и оформления брони.
   useGetCitiesQuery();
 
@@ -40,7 +42,9 @@ export function Layout() {
         </nav>
       </header>
       <main className={styles.main} data-testid="app-main">
-        <Outlet />
+        <ErrorBoundary key={location.pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </main>
     </div>
   );
