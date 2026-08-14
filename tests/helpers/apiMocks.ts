@@ -6,9 +6,9 @@ export {
   fixtureFlights,
   futureIsoDate,
   pastIsoDate,
-} from '../../src/test/fixtures';
+} from '@shared/test/fixtures';
 
-import { fixtureCities } from '../../src/test/fixtures';
+import { fixtureCities } from '@shared/test/fixtures';
 
 async function routeCities(
   page: Page,

@@ -10,8 +10,8 @@ import {
   pastIsoDate,
 } from './helpers/apiMocks';
 import { createBrowserPage } from './helpers/browser';
-import { todayIsoDate } from '../src/lib/format';
-import { DEFAULT_CITY_TIME_ZONE } from '../src/data/cityTimeZones';
+import { todayIsoDate } from '@shared/lib/format';
+import { DEFAULT_CITY_TIME_ZONE } from '@shared/data/cityTimeZones';
 
 const searchDate = futureIsoDate();
 const otherSearchDate = futureIsoDate(35);

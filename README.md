@@ -5,6 +5,16 @@
 
 Клиентское приложение бронирования рейсов: React + Vite + TypeScript. API описывается в `contract/openapi.yaml`, локально его имитирует Prism.
 
+### Структура `src/`
+
+Feature-based раскладка с жёсткими границами (ESLint):
+
+- `app/` — роутер (`routes.ts`), layout, страницы-композиции
+- `features/*` — UI и доменная логика фич (список подхватывается из каталога при загрузке ESLint-конфига; после добавления новой фичи перезапустите ESLint / IDE); снаружи только через `@features/<name>` (`index.ts`)
+- `shared/` — общее UI, хуки, lib, api, store, test-хелперы; снаружи через alias `@shared/*` (публичного barrel нет — deep-import осознан)
+
+Фичи не импортируют друг друга (relative резолвится в реальный путь, без ложных срабатываний на локальные `../<name>`) и не зависят от `app`; внутри фичи запрещён self-import через `@features/<name>`. `shared` (включая `shared/test`) не зависит от фич и `app`. Deep-import фич запрещён в `app`, `main` и `tests`. Production-код не импортирует `shared/test` / `@shared/test`. Маршруты (`bookingHref` / `bookingViewHref` в `app/routes.ts`) задаёт только `app` и передаёт в фичи через props (`getBookHref` / `bookHref`, `viewBookingHref`). У `bookingViewHref` query `lastName` появляется только если в options передано свойство `lastName` (в т.ч. пустая строка для lookup); без свойства query нет.
+
 ### Запуск
 
 ```bash
@@ -46,13 +56,13 @@ Preview не подхватывает правки автоматически �
 
 Список загружается с разумными значениями по умолчанию (MOW → LED, сегодня, 1 пассажир). Параметры синхронизируются в query-строке. Старые ссылки `/flights?...` редиректят на `/?...`. Сетевые запросы ограничены таймаутом 15 с.
 
-Даты и время: вылет/прилёт на карточке — **местное время аэропорта** (зона origin / destination) с коротким суффиксом (`MSK`, `YEKT`, `UTC+5`, …). Зона берётся из опционального `City.timeZone` в ответе API или из клиентского словаря `src/data/cityTimeZones.ts` (неизвестный код → `Europe/Moscow`). «Сегодня» и проверка «дата не в прошлом» считаются в зоне **города вылета** (`resolveSearchValues` / `validateSearchValues`, у инпута `min`). Некорректная или прошедшая дата в query переписывается на «сегодня» в зоне origin.
+Даты и время: вылет/прилёт на карточке — **местное время аэропорта** (зона origin / destination) с коротким суффиксом (`MSK`, `YEKT`, `UTC+5`, …). Зона берётся из опционального `City.timeZone` в ответе API или из клиентского словаря `src/shared/data/cityTimeZones.ts` (неизвестный код → `Europe/Moscow`). «Сегодня» и проверка «дата не в прошлом» считаются в зоне **города вылета** (`resolveSearchValues` / `validateSearchValues`, у инпута `min`). Некорректная или прошедшая дата в query переписывается на «сегодня» в зоне origin.
 
 Цена: `Flight.price` из контракта — **за одного пассажира**. Карточка так и подписывает её (`flight-price`), а при нескольких пассажирах добавляет итог (`flight-total-price`). Показываются свободные места (`flight-seats`); если их меньше, чем пассажиров в поиске, выводится предупреждение (`flight-seats-warning`).
 
 Состояния результата: загрузка (`flights-loading`), список (`flight-results` / `flight-result-item`), пусто (`flights-empty`), ошибка (`flights-error`). Кнопка `book-flight` ведёт на `/booking/:id` (дальше — экран оформления).
 
-Browser-тесты поиска (`tests/flight-search.spec.ts`) подменяют ответы API через `page.route`, поэтому не зависят от содержимого Prism. Общие фикстуры городов/рейсов и хелперы дат живут в `src/test/fixtures.ts` — даты в тестах считаются от «сегодня», чтобы не устаревать.
+Browser-тесты поиска (`tests/flight-search.spec.ts`) подменяют ответы API через `page.route`, поэтому не зависят от содержимого Prism. Общие фикстуры городов/рейсов и хелперы дат живут в `src/shared/test/fixtures.ts` — даты в тестах считаются от «сегодня», чтобы не устаревать.
 
 Ключевые `data-testid` поиска: `flight-search-form`, `search-origin`, `search-destination`, `search-date`, `search-passengers`, `search-submit`, `search-origin-error`, `search-destination-error`, `search-date-error`, `search-passengers-error`, `search-form-error` (только внешние/серверные ошибки), `cities-fallback-notice`, `flight-results`, `flight-result-item`, `flights-empty`, `flights-error`, `flights-loading`, `flight-departure`, `flight-arrival`, `flight-price`, `flight-total-price`, `flight-duration`, `flight-seats`, `flight-seats-warning`, `book-flight`.
 

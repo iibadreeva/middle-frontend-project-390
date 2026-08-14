@@ -1,0 +1,61 @@
+import {
+  FlightResults,
+  SearchForm,
+  useFlightSearch,
+} from '@features/search';
+import { FLIGHTS_SEARCH_ERROR } from '@shared/lib/messages';
+import { bookingHref } from '../routes';
+import styles from './Page.module.css';
+
+export function SearchPage() {
+  const {
+    cities,
+    citiesNotice,
+    values,
+    valuesError,
+    status,
+    flights,
+    errorMessage,
+    submit,
+  } = useFlightSearch();
+
+  let results = null;
+  if (!valuesError) {
+    if (status === 'loading') {
+      results = <FlightResults status="loading" />;
+    } else if (status === 'error') {
+      results = (
+        <FlightResults
+          status="error"
+          errorMessage={errorMessage ?? FLIGHTS_SEARCH_ERROR}
+        />
+      );
+    } else {
+      results = (
+        <FlightResults
+          status="success"
+          flights={flights}
+          passengers={values.passengers}
+          getBookHref={bookingHref}
+        />
+      );
+    }
+  }
+
+  return (
+    <section className={styles.page} data-testid="search-page">
+      <SearchForm
+        values={values}
+        cities={cities}
+        submitDisabled={!valuesError && status === 'loading'}
+        onSubmit={submit}
+      />
+      {citiesNotice ? (
+        <p className={styles.notice} data-testid="cities-fallback-notice" role="status">
+          {citiesNotice}
+        </p>
+      ) : null}
+      {results}
+    </section>
+  );
+}

@@ -1,6 +1,6 @@
 import type { Browser, Page } from 'playwright';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { BOOKING_CREATE_ERROR, BOOKING_REQUIRED_ERROR } from '../src/lib/messages';
+import { BOOKING_CREATE_ERROR, BOOKING_REQUIRED_ERROR } from '@shared/lib/messages';
 import {
   fixtureBooking,
   fixtureFlights,
