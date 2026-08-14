@@ -5,13 +5,9 @@ import {
 } from '../data/fallbackCities';
 import { isValidIsoDate, todayIsoDate } from './format';
 import { resolveTimeZoneByCode } from './resolveCityTimeZone';
+import type { SearchFormValues } from './searchSchema';
 
-export type SearchFormValues = {
-  origin: string;
-  destination: string;
-  date: string;
-  passengers: number;
-};
+export type { SearchFormValues };
 
 export function resolveSearchValues(
   params: URLSearchParams,

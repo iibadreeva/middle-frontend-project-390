@@ -1,35 +1,50 @@
-import type { BookingPassengerValues } from '../../lib/bookingValidation';
+import { useId } from 'react';
+import type { FieldErrors, UseFormRegister } from 'react-hook-form';
+import type { BookingFormValues } from '../../lib/bookingSchema';
+import { FieldError } from '../FieldError';
 import styles from './BookingForm.module.css';
 
 type PassengerFieldsProps = {
   index: number;
-  value: BookingPassengerValues;
-  invalidFields: ReadonlySet<string>;
-  errorId?: string;
+  register: UseFormRegister<BookingFormValues>;
+  errors: FieldErrors<BookingFormValues>;
   canRemove: boolean;
   disabled?: boolean;
-  onChange: (field: keyof BookingPassengerValues, next: string) => void;
+  onFieldEdit: () => void;
   onRemove: () => void;
 };
 
-function describedBy(
-  invalid: boolean,
-  errorId: string | undefined,
-): string | undefined {
-  return invalid && errorId ? errorId : undefined;
-}
-
 export function PassengerFields({
   index,
-  value,
-  invalidFields,
-  errorId,
+  register,
+  errors,
   canRemove,
   disabled = false,
-  onChange,
+  onFieldEdit,
   onRemove,
 }: PassengerFieldsProps) {
-  const prefix = `passengers.${index}`;
+  const idPrefix = useId();
+  const passengerErrors = errors.passengers?.[index];
+
+  function bind(field: 'firstName' | 'lastName' | 'dateOfBirth' | 'documentNumber') {
+    const error = passengerErrors?.[field];
+    const errorId = `${idPrefix}-${field}-error`;
+    const registration = register(`passengers.${index}.${field}`, {
+      onChange: () => onFieldEdit(),
+    });
+
+    return {
+      registration,
+      invalid: Boolean(error),
+      errorMessage: error?.message,
+      errorId,
+    };
+  }
+
+  const firstName = bind('firstName');
+  const lastName = bind('lastName');
+  const dateOfBirth = bind('dateOfBirth');
+  const documentNumber = bind('documentNumber');
 
   return (
     <li className={styles.passengerCard} data-testid="passenger-item">
@@ -38,18 +53,20 @@ export function PassengerFields({
         <input
           className={styles.input}
           type="text"
-          name={`${prefix}.firstName`}
-          value={value.firstName}
-          onChange={(event) => onChange('firstName', event.target.value)}
           autoComplete="given-name"
           disabled={disabled}
-          aria-invalid={invalidFields.has(`${prefix}.firstName`) || undefined}
-          aria-describedby={describedBy(
-            invalidFields.has(`${prefix}.firstName`),
-            errorId,
-          )}
+          aria-invalid={firstName.invalid || undefined}
+          aria-describedby={firstName.invalid ? firstName.errorId : undefined}
           data-testid={`passenger-${index}-firstName`}
+          {...firstName.registration}
         />
+        <FieldError
+          className={styles.error}
+          id={firstName.errorId}
+          testId={`passenger-${index}-firstName-error`}
+        >
+          {firstName.errorMessage}
+        </FieldError>
       </label>
 
       <label className={styles.field}>
@@ -57,18 +74,20 @@ export function PassengerFields({
         <input
           className={styles.input}
           type="text"
-          name={`${prefix}.lastName`}
-          value={value.lastName}
-          onChange={(event) => onChange('lastName', event.target.value)}
           autoComplete="family-name"
           disabled={disabled}
-          aria-invalid={invalidFields.has(`${prefix}.lastName`) || undefined}
-          aria-describedby={describedBy(
-            invalidFields.has(`${prefix}.lastName`),
-            errorId,
-          )}
+          aria-invalid={lastName.invalid || undefined}
+          aria-describedby={lastName.invalid ? lastName.errorId : undefined}
           data-testid={`passenger-${index}-lastName`}
+          {...lastName.registration}
         />
+        <FieldError
+          className={styles.error}
+          id={lastName.errorId}
+          testId={`passenger-${index}-lastName-error`}
+        >
+          {lastName.errorMessage}
+        </FieldError>
       </label>
 
       <label className={styles.field}>
@@ -76,17 +95,21 @@ export function PassengerFields({
         <input
           className={styles.input}
           type="date"
-          name={`${prefix}.dateOfBirth`}
-          value={value.dateOfBirth}
-          onChange={(event) => onChange('dateOfBirth', event.target.value)}
           disabled={disabled}
-          aria-invalid={invalidFields.has(`${prefix}.dateOfBirth`) || undefined}
-          aria-describedby={describedBy(
-            invalidFields.has(`${prefix}.dateOfBirth`),
-            errorId,
-          )}
+          aria-invalid={dateOfBirth.invalid || undefined}
+          aria-describedby={
+            dateOfBirth.invalid ? dateOfBirth.errorId : undefined
+          }
           data-testid={`passenger-${index}-dob`}
+          {...dateOfBirth.registration}
         />
+        <FieldError
+          className={styles.error}
+          id={dateOfBirth.errorId}
+          testId={`passenger-${index}-dob-error`}
+        >
+          {dateOfBirth.errorMessage}
+        </FieldError>
       </label>
 
       <label className={styles.field}>
@@ -94,19 +117,21 @@ export function PassengerFields({
         <input
           className={styles.input}
           type="text"
-          name={`${prefix}.documentNumber`}
-          value={value.documentNumber}
-          onChange={(event) => onChange('documentNumber', event.target.value)}
           disabled={disabled}
-          aria-invalid={
-            invalidFields.has(`${prefix}.documentNumber`) || undefined
+          aria-invalid={documentNumber.invalid || undefined}
+          aria-describedby={
+            documentNumber.invalid ? documentNumber.errorId : undefined
           }
-          aria-describedby={describedBy(
-            invalidFields.has(`${prefix}.documentNumber`),
-            errorId,
-          )}
           data-testid={`passenger-${index}-document`}
+          {...documentNumber.registration}
         />
+        <FieldError
+          className={styles.error}
+          id={documentNumber.errorId}
+          testId={`passenger-${index}-document-error`}
+        >
+          {documentNumber.errorMessage}
+        </FieldError>
       </label>
 
       {canRemove ? (

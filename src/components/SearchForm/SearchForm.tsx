@@ -1,11 +1,12 @@
-import { FormEvent } from 'react';
+import { useId } from 'react';
+import { Controller } from 'react-hook-form';
 import type { City } from '../../api';
 import { todayIsoDate } from '../../lib/format';
-import { resolveTimeZoneByCode } from '../../lib/resolveCityTimeZone';
 import type { SearchFormValues } from '../../lib/resolveSearchValues';
+import { FieldError } from '../FieldError';
 import { CitySelect } from './CitySelect';
 import styles from './SearchForm.module.css';
-import { useSearchFormDraft } from './useSearchFormDraft';
+import { useSearchForm } from './useSearchForm';
 
 type SearchFormProps = {
   values: SearchFormValues;
@@ -22,46 +23,86 @@ export function SearchForm({
   externalError = null,
   onSubmit,
 }: SearchFormProps) {
-  const { draft, formError, updateDraft, commitDraft } = useSearchFormDraft(
-    values,
-    cities,
-  );
+  const { form, originZone, submit } = useSearchForm(values, cities, onSubmit);
+  const {
+    control,
+    register,
+    trigger,
+    formState: { errors },
+  } = form;
 
-  const originZone = resolveTimeZoneByCode(cities, draft.origin);
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const nextValues = commitDraft();
-    if (nextValues) {
-      onSubmit?.(nextValues);
-    }
+  function onCityChange(
+    onChange: (code: string) => void,
+    code: string,
+  ) {
+    onChange(code);
+    // date тоже: смена origin меняет TZ и границу «сегодня».
+    void trigger(['origin', 'destination', 'date']);
   }
 
-  const visibleError = formError ?? externalError;
+  const dateErrorId = useId();
+  const passengersErrorId = useId();
+  const originErrorId = useId();
+  const destinationErrorId = useId();
+  const externalErrorId = useId();
+
+  const dateError = errors.date?.message;
+  const passengersError = errors.passengers?.message;
 
   return (
     <form
       className={styles.form}
       data-testid="flight-search-form"
       noValidate
-      onSubmit={handleSubmit}
+      onSubmit={(event) => {
+        if (submitDisabled) {
+          event.preventDefault();
+          return;
+        }
+        void submit(event);
+      }}
+      aria-describedby={externalError ? externalErrorId : undefined}
     >
-      <CitySelect
-        label="Откуда"
+      <Controller
         name="origin"
-        value={draft.origin}
-        cities={cities}
-        testId="search-origin"
-        onChange={(code) => updateDraft('origin', code)}
+        control={control}
+        render={({ field, fieldState }) => (
+          <CitySelect
+            ref={field.ref}
+            label="Откуда"
+            name={field.name}
+            value={field.value}
+            cities={cities}
+            testId="search-origin"
+            onChange={(code) => onCityChange(field.onChange, code)}
+            onBlur={field.onBlur}
+            invalid={Boolean(fieldState.error)}
+            errorId={originErrorId}
+            errorMessage={fieldState.error?.message}
+            errorTestId="search-origin-error"
+          />
+        )}
       />
 
-      <CitySelect
-        label="Куда"
+      <Controller
         name="destination"
-        value={draft.destination}
-        cities={cities}
-        testId="search-destination"
-        onChange={(code) => updateDraft('destination', code)}
+        control={control}
+        render={({ field, fieldState }) => (
+          <CitySelect
+            ref={field.ref}
+            label="Куда"
+            name={field.name}
+            value={field.value}
+            cities={cities}
+            testId="search-destination"
+            onChange={(code) => onCityChange(field.onChange, code)}
+            onBlur={field.onBlur}
+            invalid={Boolean(fieldState.error)}
+            errorId={destinationErrorId}
+            errorMessage={fieldState.error?.message}
+            errorTestId="search-destination-error"
+          />
+        )}
       />
 
       <label className={styles.field}>
@@ -69,12 +110,24 @@ export function SearchForm({
         <input
           className={styles.input}
           type="date"
-          name="date"
           min={todayIsoDate(originZone)}
-          value={draft.date}
-          onChange={(event) => updateDraft('date', event.target.value)}
+          aria-invalid={Boolean(dateError) || undefined}
+          aria-describedby={dateError ? dateErrorId : undefined}
           data-testid="search-date"
+          {...register('date', {
+            // mode onSubmit: ошибки от sync/trigger иначе залипают до submit.
+            onChange: () => {
+              void trigger('date');
+            },
+          })}
         />
+        <FieldError
+          className={styles.fieldError}
+          id={dateErrorId}
+          testId="search-date-error"
+        >
+          {dateError}
+        </FieldError>
       </label>
 
       <label className={styles.field}>
@@ -82,18 +135,25 @@ export function SearchForm({
         <input
           className={styles.input}
           type="number"
-          name="passengers"
           min={1}
           max={9}
-          value={Number.isFinite(draft.passengers) ? draft.passengers : ''}
-          onChange={(event) =>
-            updateDraft(
-              'passengers',
-              event.target.value === '' ? Number.NaN : Number(event.target.value),
-            )
-          }
+          aria-invalid={Boolean(passengersError) || undefined}
+          aria-describedby={passengersError ? passengersErrorId : undefined}
           data-testid="search-passengers"
+          {...register('passengers', {
+            valueAsNumber: true,
+            onChange: () => {
+              void trigger('passengers');
+            },
+          })}
         />
+        <FieldError
+          className={styles.fieldError}
+          id={passengersErrorId}
+          testId="search-passengers-error"
+        >
+          {passengersError}
+        </FieldError>
       </label>
 
       <button
@@ -105,11 +165,14 @@ export function SearchForm({
         Найти
       </button>
 
-      {visibleError ? (
-        <p className={styles.error} data-testid="search-form-error" role="alert">
-          {visibleError}
-        </p>
-      ) : null}
+      <FieldError
+        className={styles.formError}
+        id={externalErrorId}
+        testId="search-form-error"
+        live="assertive"
+      >
+        {externalError}
+      </FieldError>
     </form>
   );
 }

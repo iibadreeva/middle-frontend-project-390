@@ -3,6 +3,7 @@ import { DEFAULT_CITY_TIME_ZONE } from '../data/cityTimeZones';
 import { futureIsoDate, pastIsoDate } from '../test/fixtures';
 import { todayIsoDate } from './format';
 import {
+  SEARCH_CITY_REQUIRED_ERROR,
   SEARCH_DATE_PAST_ERROR,
   SEARCH_DATE_REQUIRED_ERROR,
   SEARCH_PASSENGERS_ERROR,
@@ -37,6 +38,12 @@ describe('validateSearchValues', () => {
     expect(
       validateSearchValues({ ...valid, destination: 'MOW' }, zone),
     ).toBe(SEARCH_SAME_CITIES_ERROR);
+  });
+
+  it('rejects an empty origin', () => {
+    expect(validateSearchValues({ ...valid, origin: '' }, zone)).toBe(
+      SEARCH_CITY_REQUIRED_ERROR,
+    );
   });
 
   it('rejects an empty date', () => {

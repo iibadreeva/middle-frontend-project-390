@@ -44,7 +44,6 @@ export function SearchPage() {
         values={values}
         cities={cities}
         submitDisabled={!valuesError && status === 'loading'}
-        externalError={valuesError}
         onSubmit={submit}
       />
       {citiesNotice ? (

@@ -159,7 +159,15 @@ describe('flight search', () => {
     }));
 
     await page.goto(appUrl, { waitUntil: 'load' });
-    await page.getByTestId('flight-results').waitFor({ state: 'visible' });
+    await page.getByTestId('cities-fallback-notice').waitFor({ state: 'visible' });
+    await page.getByTestId('flight-search-form').waitFor({ state: 'visible' });
+    // Поиск завершён (success/empty) — submit снова доступен.
+    await page.waitForFunction(() => {
+      const button = document.querySelector(
+        '[data-testid="search-submit"]',
+      ) as HTMLButtonElement | null;
+      return Boolean(button && !button.disabled);
+    });
 
     const originOptions = page.getByTestId('search-origin').locator('option');
     expect(await originOptions.count()).toBeGreaterThan(0);
@@ -333,7 +341,9 @@ describe('flight search', () => {
       .selectOption({ label: 'Москва' });
     await page.getByTestId('search-submit').click();
 
-    expect(await page.getByTestId('search-form-error').isVisible()).toBe(true);
+    expect(
+      await page.getByTestId('search-destination-error').isVisible(),
+    ).toBe(true);
     expect(page.url()).toBe(urlBefore);
   });
 
@@ -350,8 +360,8 @@ describe('flight search', () => {
     await page.getByTestId('search-date').fill('');
     await page.getByTestId('search-submit').click();
 
-    expect(await page.getByTestId('search-form-error').isVisible()).toBe(true);
-    expect(await page.getByTestId('search-form-error').textContent()).toContain(
+    expect(await page.getByTestId('search-date-error').isVisible()).toBe(true);
+    expect(await page.getByTestId('search-date-error').textContent()).toContain(
       'Укажите дату вылета',
     );
     expect(page.url()).toBe(urlBefore);
@@ -390,7 +400,7 @@ describe('flight search', () => {
     await page.getByTestId('search-date').fill(pastIsoDate(1));
     await page.getByTestId('search-submit').click();
 
-    expect(await page.getByTestId('search-form-error').textContent()).toContain(
+    expect(await page.getByTestId('search-date-error').textContent()).toContain(
       'Дата вылета не может быть в прошлом',
     );
     expect(page.url()).toBe(urlBefore);

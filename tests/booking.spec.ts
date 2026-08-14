@@ -105,9 +105,9 @@ describe('booking', () => {
     await page.getByTestId('booking-submit').click();
 
     expect(createCalls).toBe(0);
-    expect(await page.getByTestId('booking-error').textContent()).toContain(
-      BOOKING_REQUIRED_ERROR,
-    );
+    expect(
+      await page.getByTestId('contact-email-error').textContent(),
+    ).toContain(BOOKING_REQUIRED_ERROR);
   });
 
   it('adds a passenger and posts both passengers with contact', async () => {

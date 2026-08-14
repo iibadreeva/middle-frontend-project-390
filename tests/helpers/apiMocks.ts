@@ -10,44 +10,44 @@ export {
 
 import { fixtureCities } from '../../src/test/fixtures';
 
-function isFlightsListUrl(url: URL): boolean {
-  return /\/api\/flights\/?$/.test(url.pathname);
+async function routeCities(
+  page: Page,
+  fulfill: () => { status: number; body: unknown },
+) {
+  // unroute без активного route бросает — игнорируем.
+  await page.unroute('**/api/cities').catch(() => undefined);
+  await page.route('**/api/cities', async (route) => {
+    const response = fulfill();
+    await route.fulfill({
+      status: response.status,
+      contentType: 'application/json',
+      body: JSON.stringify(response.body),
+    });
+  });
 }
 
 export async function mockCitiesApi(page: Page) {
-  await page.route('**/api/cities', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(fixtureCities),
-    });
-  });
+  await routeCities(page, () => ({ status: 200, body: fixtureCities }));
 }
 
 export async function mockCitiesApiError(page: Page) {
-  await page.route('**/api/cities', async (route) => {
-    await route.fulfill({
-      status: 500,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        code: 'server_error',
-        message: 'Cities unavailable',
-      }),
-    });
-  });
+  await routeCities(page, () => ({
+    status: 500,
+    body: {
+      code: 'server_error',
+      message: 'Cities unavailable',
+    },
+  }));
 }
 
 export async function mockFlightsApi(
   page: Page,
   handler: (url: URL) => { status: number; body: unknown },
 ) {
-  await page.route('**/api/flights**', async (route) => {
+  // Только список /api/flights[?…], не /api/flights/:id.
+  // Без route.fallback() — иначе proxy на мёртвый Prism вешает тест.
+  await page.route(/\/api\/flights(?:\?|$)/, async (route) => {
     const url = new URL(route.request().url());
-    if (!isFlightsListUrl(url)) {
-      await route.fallback();
-      return;
-    }
-
     const response = handler(url);
     await route.fulfill({
       status: response.status,
@@ -88,7 +88,11 @@ export async function mockCreateBookingApi(
 ) {
   await page.route('**/api/bookings', async (route) => {
     if (route.request().method() !== 'POST') {
-      await route.fallback();
+      await route.fulfill({
+        status: 405,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 'method_not_allowed' }),
+      });
       return;
     }
 

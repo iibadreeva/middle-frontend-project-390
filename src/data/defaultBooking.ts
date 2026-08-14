@@ -1,4 +1,4 @@
-import type { BookingFormValues } from '../lib/bookingValidation';
+import type { BookingFormValues } from '../lib/bookingSchema';
 
 export const emptyPassenger = (): BookingFormValues['passengers'][number] => ({
   firstName: '',
