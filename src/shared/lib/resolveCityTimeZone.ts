@@ -2,10 +2,7 @@ import {
   CITY_TIME_ZONES,
   DEFAULT_CITY_TIME_ZONE,
 } from '../data/cityTimeZones';
-import {
-  isSupportedTimeZone,
-  warnUnknownTimeZone,
-} from './timeZoneSupport';
+import { resolveSupportedTimeZone } from './timeZoneSupport';
 
 export type CityTimeZoneSource = {
   code: string;
@@ -28,17 +25,15 @@ function hasExplicitTimeZone(
  */
 export function resolveCityTimeZone(city: CityTimeZoneSource): string {
   const fromApi = city.timeZone?.trim();
-  if (fromApi) {
-    if (isSupportedTimeZone(fromApi)) {
-      return fromApi;
-    }
-    warnUnknownTimeZone(
-      fromApi,
-      `Неизвестная IANA-зона «${fromApi}» для города ${city.code}; используем словарь.`,
-    );
+  if (!fromApi) {
+    return fromDictionary(city.code);
   }
 
-  return fromDictionary(city.code);
+  return resolveSupportedTimeZone(
+    fromApi,
+    fromDictionary(city.code),
+    `Неизвестная IANA-зона «${fromApi}» для города ${city.code}; используем словарь.`,
+  );
 }
 
 /**
