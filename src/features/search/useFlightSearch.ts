@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { City, Flight } from '@shared/api';
+import { useCities, type City } from '@entities/city';
+import { useGetFlightsQuery, type Flight } from '@entities/flight';
 import { FLIGHTS_SEARCH_ERROR } from '@shared/lib/messages';
 import type { RequestStatus } from '@shared/lib/requestStatus';
 import { resolveTimeZoneByCode } from '@shared/lib/resolveCityTimeZone';
@@ -11,8 +12,6 @@ import {
   type SearchFormValues,
 } from './resolveSearchValues';
 import { validateSearchValues } from './searchValidation';
-import { useGetFlightsQuery } from '@shared/store/api';
-import { useCities } from '@shared/hooks/useCities';
 
 /**
  * Поиск рейсов стартует только после `citiesReady` — иначе первый запрос

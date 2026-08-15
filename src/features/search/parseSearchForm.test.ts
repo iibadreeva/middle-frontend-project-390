@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { City } from '@shared/api';
+import type { City } from '@entities/city';
 import { DEFAULT_CITY_TIME_ZONE } from '@shared/data/cityTimeZones';
 import { todayIsoDate } from '@shared/lib/format';
 import { SEARCH_SAME_CITIES_ERROR } from '@shared/lib/messages';

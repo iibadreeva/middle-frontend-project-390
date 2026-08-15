@@ -15,6 +15,7 @@ export default defineConfig({
     alias: {
       '@shared': path.resolve(rootDir, 'src/shared'),
       '@features': path.resolve(rootDir, 'src/features'),
+      '@entities': path.resolve(rootDir, 'src/entities'),
     },
   },
   server: {

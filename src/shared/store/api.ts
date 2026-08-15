@@ -1,14 +1,4 @@
 import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
-import {
-  createBooking,
-  getCities,
-  getFlight,
-  getFlights,
-  type Booking,
-  type City,
-  type CreateBookingRequest,
-  type Flight,
-} from '../api';
 import { ApiError } from '../lib/errors';
 
 export type ApiQueryError = {
@@ -16,15 +6,6 @@ export type ApiQueryError = {
   message: string;
   name?: string;
 };
-
-export type FlightSearchArgs = {
-  origin: string;
-  destination: string;
-  date: string;
-  passengers: number;
-};
-
-const CITIES_CACHE_SECONDS = 60 * 60;
 
 export function toQueryError(error: unknown): ApiQueryError {
   if (error instanceof ApiError) {
@@ -60,7 +41,7 @@ export function getQueryErrorMessage(error: unknown): string | undefined {
   return undefined;
 }
 
-async function runQuery<T>(
+export async function runQuery<T>(
   signal: AbortSignal,
   execute: () => Promise<T>,
 ): Promise<{ data: T } | { error: ApiQueryError }> {
@@ -75,38 +56,15 @@ async function runQuery<T>(
   }
 }
 
+/**
+ * Базовый API без доменных endpoint'ов — их inject'ят entities.
+ * `tagTypes` объявляются здесь: RTK Query требует полный список на createApi;
+ * новые теги (например Booking) добавляйте в этот массив, затем используйте
+ * в injectEndpoints сущности.
+ */
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fakeBaseQuery<ApiQueryError>(),
   tagTypes: ['City', 'Flight'],
-  endpoints: (build) => ({
-    getCities: build.query<City[], void>({
-      queryFn: async (_arg, { signal }) =>
-        runQuery(signal, () => getCities(signal)),
-      providesTags: ['City'],
-      keepUnusedDataFor: CITIES_CACHE_SECONDS,
-    }),
-    getFlights: build.query<Flight[], FlightSearchArgs>({
-      queryFn: async (args, { signal }) =>
-        runQuery(signal, () => getFlights(args, signal)),
-      providesTags: [{ type: 'Flight', id: 'LIST' }],
-    }),
-    getFlight: build.query<Flight, string>({
-      queryFn: async (id, { signal }) =>
-        runQuery(signal, () => getFlight(id, signal)),
-      providesTags: (_result, _error, id) => [{ type: 'Flight', id }],
-    }),
-    createBooking: build.mutation<Booking, CreateBookingRequest>({
-      queryFn: async (body, { signal }) =>
-        runQuery(signal, () => createBooking(body, signal)),
-      invalidatesTags: [{ type: 'Flight', id: 'LIST' }],
-    }),
-  }),
+  endpoints: () => ({}),
 });
-
-export const {
-  useGetCitiesQuery,
-  useGetFlightsQuery,
-  useGetFlightQuery,
-  useCreateBookingMutation,
-} = api;

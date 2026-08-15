@@ -1,4 +1,6 @@
-import type { Booking, City, Flight } from '../api';
+import type { Booking } from '@entities/booking';
+import type { City } from '@entities/city';
+import type { Flight } from '@entities/flight';
 import { DEFAULT_CITY_TIME_ZONE } from '../data/cityTimeZones';
 import { todayIsoDate } from '../lib/format';
 

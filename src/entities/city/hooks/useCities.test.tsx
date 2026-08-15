@@ -1,9 +1,9 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CITIES_FALLBACK_NOTICE } from '@shared/lib/messages';
+import { TestProviders } from '@shared/test/providers';
 import { FALLBACK_CITIES } from '../data/fallbackCities';
-import { CITIES_FALLBACK_NOTICE } from '../lib/messages';
-import { TestProviders } from '../test/providers';
 import { useCities } from './useCities';
 
 function wrapper({ children }: { children: ReactNode }) {

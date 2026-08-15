@@ -4,7 +4,7 @@ import type {
   UseFormGetValues,
   UseFormSetError,
 } from 'react-hook-form';
-import type { City } from '@shared/api';
+import type { City } from '@entities/city';
 import { parseSearchForm } from '../parseSearchForm';
 import type { SearchFormValues } from '../resolveSearchValues';
 

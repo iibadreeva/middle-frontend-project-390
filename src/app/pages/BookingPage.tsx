@@ -9,7 +9,7 @@ import {
   useFlight,
   type BookingFormValues,
 } from '@features/booking';
-import type { Flight } from '@shared/api';
+import type { Flight } from '@entities/flight';
 import { FLIGHT_LOAD_ERROR, FLIGHT_NOT_FOUND } from '@shared/lib/messages';
 import { bookingViewHref } from '../routes';
 import styles from './Page.module.css';

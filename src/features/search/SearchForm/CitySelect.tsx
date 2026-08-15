@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import type { City } from '@shared/api';
+import type { City } from '@entities/city';
 import { FieldError } from '@shared/ui/FieldError';
 import styles from './SearchForm.module.css';
 

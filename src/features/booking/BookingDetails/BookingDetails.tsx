@@ -1,6 +1,5 @@
+import type { BookingStatus } from '@entities/booking';
 import styles from './BookingDetails.module.css';
-
-export type BookingStatus = 'confirmed' | 'cancelled';
 
 export type BookingDetailsData = {
   code: string;

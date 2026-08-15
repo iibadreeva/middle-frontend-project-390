@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Provider } from 'react-redux';
-import type { City } from '../api';
+import type { City } from '@entities/city';
 import type { AppStore } from '../store';
 import { createTestStore } from './store';
 

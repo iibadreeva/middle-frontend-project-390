@@ -1,4 +1,4 @@
-import type { Flight } from '@shared/api';
+import type { Flight } from '@entities/flight';
 import type { RequestStatus } from '@shared/lib/requestStatus';
 import { FlightCard } from '../FlightCard/FlightCard';
 import styles from './FlightResults.module.css';

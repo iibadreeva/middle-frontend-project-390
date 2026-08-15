@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
-import type { City, Flight } from '@shared/api';
+import type { City } from '@entities/city';
+import type { Flight } from '@entities/flight';
 import { fixtureCities, fixtureFlights } from '@shared/test/fixtures';
 import { TestProviders } from '@shared/test/providers';
 import { FlightCard } from './FlightCard';

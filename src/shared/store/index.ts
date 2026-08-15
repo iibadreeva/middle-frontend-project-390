@@ -1,6 +1,15 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { api } from './api';
 
+export {
+  api,
+  getQueryErrorMessage,
+  getQueryErrorStatus,
+  runQuery,
+  toQueryError,
+  type ApiQueryError,
+} from './api';
+
 export function makeStore() {
   return configureStore({
     reducer: {

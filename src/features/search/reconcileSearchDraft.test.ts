@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { City } from '@shared/api';
+import type { City } from '@entities/city';
 import { reconcileSearchDraft } from './reconcileSearchDraft';
 import { toSearchKey, type SearchFormValues } from './resolveSearchValues';
 

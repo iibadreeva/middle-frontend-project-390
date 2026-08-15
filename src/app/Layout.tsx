@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useGetCitiesQuery } from '@shared/store/api';
+import { useGetCitiesQuery } from '@entities/city';
 import { ErrorBoundary } from '@shared/ui/ErrorBoundary';
 import { bookingsHref, homeHref } from './routes';
 import styles from './Layout.module.css';

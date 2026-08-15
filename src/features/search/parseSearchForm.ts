@@ -1,4 +1,4 @@
-import type { City } from '@shared/api';
+import type { City } from '@entities/city';
 import { resolveTimeZoneByCode } from '@shared/lib/resolveCityTimeZone';
 import { createSearchSchema, type SearchFormValues } from './searchSchema';
 

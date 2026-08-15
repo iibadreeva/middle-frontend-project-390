@@ -1,7 +1,7 @@
 import { skipToken } from '@reduxjs/toolkit/query/react';
 import { useEffect, useRef, useState } from 'react';
-import type { Flight } from '@shared/api';
-import { getQueryErrorStatus, useGetFlightQuery } from '@shared/store/api';
+import { useGetFlightQuery, type Flight } from '@entities/flight';
+import { getQueryErrorStatus } from '@shared/store';
 
 export type FlightLoadStatus = 'loading' | 'success' | 'not-found' | 'error';
 

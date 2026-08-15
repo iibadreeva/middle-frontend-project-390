@@ -1,14 +1,14 @@
 import { useEffect, useRef } from 'react';
 import {
+  useCreateBookingMutation,
   type Booking,
   type CreateBookingRequest,
-} from '@shared/api';
+} from '@entities/booking';
 import { BOOKING_CREATE_ERROR } from '@shared/lib/messages';
 import {
   getQueryErrorMessage,
   getQueryErrorStatus,
-  useCreateBookingMutation,
-} from '@shared/store/api';
+} from '@shared/store';
 
 export type CreateBookingStatus = 'idle' | 'submitting' | 'success' | 'error';
 

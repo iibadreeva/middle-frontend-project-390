@@ -1,4 +1,4 @@
-import type { City } from '../api';
+import type { City } from '../model/types';
 
 /** Запасной список, если /api/cities недоступен или отвечает медленно — форма остаётся рабочей. */
 export const FALLBACK_CITIES: City[] = [

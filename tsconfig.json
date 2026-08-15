@@ -19,7 +19,8 @@
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["src/shared/*"],
-      "@features/*": ["src/features/*"]
+      "@features/*": ["src/features/*"],
+      "@entities/*": ["src/entities/*"]
     }
   },
   "include": ["src", "tests", "vite.config.ts"]

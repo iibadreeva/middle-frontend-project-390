@@ -1,8 +1,8 @@
-import type { City } from '@shared/api';
 import {
   FALLBACK_DESTINATION,
   FALLBACK_ORIGIN,
-} from '@shared/data/fallbackCities';
+  type City,
+} from '@entities/city';
 import { isValidIsoDate, todayIsoDate } from '@shared/lib/format';
 import { resolveTimeZoneByCode } from '@shared/lib/resolveCityTimeZone';
 import type { SearchFormValues } from './searchSchema';

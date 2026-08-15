@@ -1,9 +1,8 @@
 import { useId, type ReactNode } from 'react';
 import { FormProvider, useFormState } from 'react-hook-form';
-import type { Money } from '@shared/api';
+import { formatPrice, totalMoney, type Money } from '@entities/booking';
 import type { BookingFormValues, BookingPassengerValues } from '../bookingSchema';
 import { passengersSectionError } from '../passengersSectionError';
-import { formatPrice, totalMoney } from '@shared/lib/format';
 import { BOOKING_SEATS_ERROR } from '@shared/lib/messages';
 import { FieldError } from '@shared/ui/FieldError';
 import { FormInput } from '@shared/ui/form';

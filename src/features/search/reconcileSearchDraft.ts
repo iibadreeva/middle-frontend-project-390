@@ -1,4 +1,4 @@
-import type { City } from '@shared/api';
+import type { City } from '@entities/city';
 import { toSearchKey, type SearchFormValues } from './resolveSearchValues';
 
 function pickValidCityCode(

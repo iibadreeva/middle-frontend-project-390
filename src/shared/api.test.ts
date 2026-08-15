@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getCities, mergeRequestHeaders } from './api';
+import { mergeRequestHeaders, request } from './api';
 import { ApiError } from './lib/errors';
 
 describe('mergeRequestHeaders', () => {
@@ -51,7 +51,7 @@ describe('request errors', () => {
       vi.fn(async () => Response.json(body, { status: 500 })),
     );
 
-    const error = await getCities().catch((err: unknown) => err);
+    const error = await request('/api/cities').catch((err: unknown) => err);
     expect(error).toBeInstanceOf(ApiError);
     expect(error).toMatchObject({
       status: 500,
@@ -77,7 +77,7 @@ describe('request errors', () => {
       })),
     );
 
-    const pending = getCities(caller.signal);
+    const pending = request<unknown[]>('/api/cities', { signal: caller.signal });
 
     await vi.waitFor(() => {
       expect(resolveJson).toBeTypeOf('function');

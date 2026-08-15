@@ -1,7 +1,7 @@
-import type { City } from '../api';
+import { CITIES_FALLBACK_NOTICE } from '@shared/lib/messages';
+import { useGetCitiesQuery } from '../api';
 import { FALLBACK_CITIES } from '../data/fallbackCities';
-import { CITIES_FALLBACK_NOTICE } from '../lib/messages';
-import { useGetCitiesQuery } from '../store/api';
+import type { City } from '../model/types';
 
 export function useCities(): {
   cities: City[];

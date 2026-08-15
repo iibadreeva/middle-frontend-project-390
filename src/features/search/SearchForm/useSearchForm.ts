@@ -5,7 +5,7 @@ import {
   useWatch,
   type UseFormReturn,
 } from 'react-hook-form';
-import type { City } from '@shared/api';
+import type { City } from '@entities/city';
 import { useLatestRef } from '@shared/hooks/useLatestRef';
 import { createCachedResolver } from '@shared/lib/createCachedResolver';
 import {

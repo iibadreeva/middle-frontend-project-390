@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
-import type { City } from '@shared/api';
+import type { City } from '@entities/city';
 import { reconcileSearchDraft } from '../reconcileSearchDraft';
 import {
   toSearchKey,

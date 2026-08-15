@@ -7,7 +7,7 @@ import { TestProviders } from '@shared/test/providers';
 import { Layout } from './Layout';
 import { routePaths } from './routes';
 
-function BoomPage() {
+function BoomPage(): React.JSX.Element {
   throw new Error('page boom');
 }
 

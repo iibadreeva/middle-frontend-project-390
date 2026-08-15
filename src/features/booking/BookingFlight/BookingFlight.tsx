@@ -1,6 +1,6 @@
-import type { Flight } from '@shared/api';
-import { useCities } from '@shared/hooks/useCities';
-import { formatDateTime, formatPrice, totalMoney } from '@shared/lib/format';
+import { useCities } from '@entities/city';
+import { formatPrice, totalMoney, type Flight } from '@entities/flight';
+import { formatDateTime } from '@shared/lib/format';
 import { resolveFlightCityTimeZone } from '@shared/lib/resolveCityTimeZone';
 import styles from './BookingFlight.module.css';
 

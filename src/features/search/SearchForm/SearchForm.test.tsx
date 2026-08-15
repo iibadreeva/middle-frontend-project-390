@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { City } from '@shared/api';
+import type { City } from '@entities/city';
 import { DEFAULT_CITY_TIME_ZONE } from '@shared/data/cityTimeZones';
 import { todayIsoDate } from '@shared/lib/format';
 import { resolveTimeZoneByCode } from '@shared/lib/resolveCityTimeZone';

@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
-import type { Flight } from '@shared/api';
-import { useCities } from '@shared/hooks/useCities';
+import { useCities } from '@entities/city';
 import {
-  formatDateTime,
   formatDuration,
   formatPrice,
   totalMoney,
-} from '@shared/lib/format';
+  type Flight,
+} from '@entities/flight';
+import { formatDateTime } from '@shared/lib/format';
 import { resolveFlightCityTimeZone } from '@shared/lib/resolveCityTimeZone';
 import styles from './FlightCard.module.css';
 

@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
-import type { Booking } from '@shared/api';
-import { formatPrice } from '@shared/lib/format';
+import { formatPrice, type Booking } from '@entities/booking';
 import styles from './BookingSuccess.module.css';
 
 type BookingSuccessProps = {

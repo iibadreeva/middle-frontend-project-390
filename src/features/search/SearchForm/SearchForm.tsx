@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { Controller } from 'react-hook-form';
-import type { City } from '@shared/api';
+import type { City } from '@entities/city';
 import { todayIsoDate } from '@shared/lib/format';
 import type { SearchFormValues } from '../resolveSearchValues';
 import { FieldError } from '@shared/ui/FieldError';
