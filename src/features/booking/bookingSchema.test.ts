@@ -7,9 +7,10 @@ import {
   BOOKING_PASSENGERS_ERROR,
   BOOKING_PHONE_ERROR,
   BOOKING_REQUIRED_ERROR,
+  BOOKING_SEATS_ERROR,
 } from '@shared/lib/messages';
 import * as format from '@shared/lib/format';
-import { bookingSchema } from './bookingSchema';
+import { bookingSchema, createBookingSchema } from './bookingSchema';
 
 const validPassenger = {
   firstName: 'Иван',
@@ -197,8 +198,31 @@ describe('bookingSchema', () => {
     }
   });
 
-  it('does not enforce seatsAvailable in the schema (UI responsibility)', () => {
+  it('does not enforce seats when seatsAvailable is omitted', () => {
     const result = bookingSchema.safeParse({
+      ...valid,
+      passengers: [validPassenger, validPassenger],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects more passengers than seatsAvailable', () => {
+    const schema = createBookingSchema({ seatsAvailable: 1 });
+    const result = schema.safeParse({
+      ...valid,
+      passengers: [validPassenger, validPassenger],
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(issueAt(result, 'passengers')).toBe(BOOKING_SEATS_ERROR);
+    }
+  });
+
+  it('accepts passengers within seatsAvailable', () => {
+    const schema = createBookingSchema({ seatsAvailable: 2 });
+    const result = schema.safeParse({
       ...valid,
       passengers: [validPassenger, validPassenger],
     });

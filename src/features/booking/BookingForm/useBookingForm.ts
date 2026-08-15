@@ -4,14 +4,18 @@ import {
   useFieldArray,
   useForm,
   type FieldArrayWithId,
+  type RegisterOptions,
   type UseFormReturn,
 } from 'react-hook-form';
+import { useLatestRef } from '@shared/hooks/useLatestRef';
+import { createCachedResolver } from '@shared/lib/createCachedResolver';
 import { emptyPassenger, createEmptyBookingValues } from '../defaultBooking';
 import {
-  bookingSchema,
+  createBookingSchema,
   MAX_BOOKING_PASSENGERS,
   type BookingFormValues,
 } from '../bookingSchema';
+import { useBookingSeatsShortage } from './useBookingSeatsShortage';
 
 export type UseBookingFormOptions = {
   initialValues?: BookingFormValues;
@@ -26,10 +30,11 @@ export type UseBookingFormResult = {
   passengerCount: number;
   canAddPassenger: boolean;
   seatsShortage: boolean;
+  /** Стабильные options для `register` / `FormInput` (dismiss external error). */
+  fieldRegisterOptions: RegisterOptions<BookingFormValues>;
   addPassenger: () => void;
   removePassenger: (index: number) => void;
   submit: (event?: BaseSyntheticEvent) => Promise<void>;
-  onFieldEdit: () => void;
 };
 
 export function useBookingForm({
@@ -38,16 +43,29 @@ export function useBookingForm({
   onDismissExternalError,
   onSubmit,
 }: UseBookingFormOptions): UseBookingFormResult {
-  // Resolver создаём один раз: лимит мест — в UI + guard ниже
-  // (`seatsShortage`), а не в Zod — seatsAvailable приходит уже после mount.
-  const resolver = useMemo(() => zodResolver(bookingSchema), []);
+  // Prop → ref: resolver видит актуальный seatsAvailable (useForm берёт resolver на mount).
+  const seatsAvailableRef = useLatestRef(seatsAvailable);
+  const onDismissExternalErrorRef = useLatestRef(onDismissExternalError);
+  const onSubmitRef = useLatestRef(onSubmit);
+
+  const resolver = useMemo(
+    () =>
+      createCachedResolver<BookingFormValues, number | undefined>(
+        () => seatsAvailableRef.current,
+        () =>
+          zodResolver(
+            createBookingSchema({ seatsAvailable: seatsAvailableRef.current }),
+          ),
+      ),
+    [seatsAvailableRef],
+  );
 
   const form = useForm<BookingFormValues>({
-    resolver,
     defaultValues: initialValues ?? createEmptyBookingValues(),
     mode: 'onSubmit',
     reValidateMode: 'onChange',
     criteriaMode: 'all',
+    resolver,
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -56,23 +74,29 @@ export function useBookingForm({
   });
 
   const passengerCount = fields.length;
-  const passengerLimit = Math.min(
-    MAX_BOOKING_PASSENGERS,
-    seatsAvailable ?? MAX_BOOKING_PASSENGERS,
+  const canAddPassenger =
+    passengerCount <
+    Math.min(MAX_BOOKING_PASSENGERS, seatsAvailable ?? MAX_BOOKING_PASSENGERS);
+  const seatsShortage = useBookingSeatsShortage(
+    form,
+    seatsAvailable,
+    passengerCount,
   );
-  const canAddPassenger = passengerCount < passengerLimit;
-  const seatsShortage =
-    seatsAvailable != null && passengerCount > seatsAvailable;
 
-  function onFieldEdit() {
-    onDismissExternalError?.();
-  }
+  const fieldRegisterOptions = useMemo(
+    () => ({
+      onChange: () => {
+        onDismissExternalErrorRef.current?.();
+      },
+    }),
+    [onDismissExternalErrorRef],
+  );
 
   function addPassenger() {
     if (!canAddPassenger) {
       return;
     }
-    onDismissExternalError?.();
+    onDismissExternalErrorRef.current?.();
     append(emptyPassenger());
   }
 
@@ -80,20 +104,12 @@ export function useBookingForm({
     if (fields.length <= 1) {
       return;
     }
-    onDismissExternalError?.();
+    onDismissExternalErrorRef.current?.();
     remove(index);
   }
 
-  // Seats shortage не в Zod: disabled submit в UI + этот guard (на случай
-  // прямого вызова submit / обхода disabled).
   const submit = form.handleSubmit((values) => {
-    if (
-      seatsAvailable != null &&
-      values.passengers.length > seatsAvailable
-    ) {
-      return;
-    }
-    onSubmit?.(values);
+    onSubmitRef.current?.(values);
   });
 
   return {
@@ -102,9 +118,9 @@ export function useBookingForm({
     passengerCount,
     canAddPassenger,
     seatsShortage,
+    fieldRegisterOptions,
     addPassenger,
     removePassenger,
     submit,
-    onFieldEdit,
   };
 }

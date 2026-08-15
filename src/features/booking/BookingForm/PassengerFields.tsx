@@ -1,138 +1,78 @@
 import { useId } from 'react';
-import type { FieldErrors, UseFormRegister } from 'react-hook-form';
+import type { RegisterOptions } from 'react-hook-form';
 import type { BookingFormValues } from '../bookingSchema';
-import { FieldError } from '@shared/ui/FieldError';
+import { FormInput } from '@shared/ui/form';
+import { bookingFormFieldClassNames } from './bookingFormFieldClassNames';
 import styles from './BookingForm.module.css';
 
 type PassengerFieldsProps = {
   index: number;
-  register: UseFormRegister<BookingFormValues>;
-  errors: FieldErrors<BookingFormValues>;
   canRemove: boolean;
   disabled?: boolean;
-  onFieldEdit: () => void;
+  registerOptions?: RegisterOptions<BookingFormValues>;
   onRemove: () => void;
 };
 
 export function PassengerFields({
   index,
-  register,
-  errors,
   canRemove,
   disabled = false,
-  onFieldEdit,
+  registerOptions,
   onRemove,
 }: PassengerFieldsProps) {
   const idPrefix = useId();
-  const passengerErrors = errors.passengers?.[index];
-
-  function bind(field: 'firstName' | 'lastName' | 'dateOfBirth' | 'documentNumber') {
-    const error = passengerErrors?.[field];
-    const errorId = `${idPrefix}-${field}-error`;
-    const registration = register(`passengers.${index}.${field}`, {
-      onChange: () => onFieldEdit(),
-    });
-
-    return {
-      registration,
-      invalid: Boolean(error),
-      errorMessage: error?.message,
-      errorId,
-    };
-  }
-
-  const firstName = bind('firstName');
-  const lastName = bind('lastName');
-  const dateOfBirth = bind('dateOfBirth');
-  const documentNumber = bind('documentNumber');
 
   return (
     <li className={styles.passengerCard} data-testid="passenger-item">
-      <label className={styles.field}>
-        <span className={styles.label}>Имя</span>
-        <input
-          className={styles.input}
-          type="text"
-          autoComplete="given-name"
-          disabled={disabled}
-          aria-invalid={firstName.invalid || undefined}
-          aria-describedby={firstName.invalid ? firstName.errorId : undefined}
-          data-testid={`passenger-${index}-firstName`}
-          {...firstName.registration}
-        />
-        <FieldError
-          className={styles.error}
-          id={firstName.errorId}
-          testId={`passenger-${index}-firstName-error`}
-        >
-          {firstName.errorMessage}
-        </FieldError>
-      </label>
+      <FormInput<BookingFormValues>
+        name={`passengers.${index}.firstName`}
+        label="Имя"
+        type="text"
+        autoComplete="given-name"
+        disabled={disabled}
+        id={`${idPrefix}-firstName`}
+        data-testid={`passenger-${index}-firstName`}
+        errorTestId={`passenger-${index}-firstName-error`}
+        classNames={bookingFormFieldClassNames}
+        registerOptions={registerOptions}
+      />
 
-      <label className={styles.field}>
-        <span className={styles.label}>Фамилия</span>
-        <input
-          className={styles.input}
-          type="text"
-          autoComplete="family-name"
-          disabled={disabled}
-          aria-invalid={lastName.invalid || undefined}
-          aria-describedby={lastName.invalid ? lastName.errorId : undefined}
-          data-testid={`passenger-${index}-lastName`}
-          {...lastName.registration}
-        />
-        <FieldError
-          className={styles.error}
-          id={lastName.errorId}
-          testId={`passenger-${index}-lastName-error`}
-        >
-          {lastName.errorMessage}
-        </FieldError>
-      </label>
+      <FormInput<BookingFormValues>
+        name={`passengers.${index}.lastName`}
+        label="Фамилия"
+        type="text"
+        autoComplete="family-name"
+        disabled={disabled}
+        id={`${idPrefix}-lastName`}
+        data-testid={`passenger-${index}-lastName`}
+        errorTestId={`passenger-${index}-lastName-error`}
+        classNames={bookingFormFieldClassNames}
+        registerOptions={registerOptions}
+      />
 
-      <label className={styles.field}>
-        <span className={styles.label}>Дата рождения</span>
-        <input
-          className={styles.input}
-          type="date"
-          disabled={disabled}
-          aria-invalid={dateOfBirth.invalid || undefined}
-          aria-describedby={
-            dateOfBirth.invalid ? dateOfBirth.errorId : undefined
-          }
-          data-testid={`passenger-${index}-dob`}
-          {...dateOfBirth.registration}
-        />
-        <FieldError
-          className={styles.error}
-          id={dateOfBirth.errorId}
-          testId={`passenger-${index}-dob-error`}
-        >
-          {dateOfBirth.errorMessage}
-        </FieldError>
-      </label>
+      <FormInput<BookingFormValues>
+        name={`passengers.${index}.dateOfBirth`}
+        label="Дата рождения"
+        type="date"
+        disabled={disabled}
+        id={`${idPrefix}-dob`}
+        data-testid={`passenger-${index}-dob`}
+        errorTestId={`passenger-${index}-dob-error`}
+        classNames={bookingFormFieldClassNames}
+        registerOptions={registerOptions}
+      />
 
-      <label className={styles.field}>
-        <span className={styles.label}>Документ</span>
-        <input
-          className={styles.input}
-          type="text"
-          disabled={disabled}
-          aria-invalid={documentNumber.invalid || undefined}
-          aria-describedby={
-            documentNumber.invalid ? documentNumber.errorId : undefined
-          }
-          data-testid={`passenger-${index}-document`}
-          {...documentNumber.registration}
-        />
-        <FieldError
-          className={styles.error}
-          id={documentNumber.errorId}
-          testId={`passenger-${index}-document-error`}
-        >
-          {documentNumber.errorMessage}
-        </FieldError>
-      </label>
+      <FormInput<BookingFormValues>
+        name={`passengers.${index}.documentNumber`}
+        label="Документ"
+        type="text"
+        disabled={disabled}
+        id={`${idPrefix}-document`}
+        data-testid={`passenger-${index}-document`}
+        errorTestId={`passenger-${index}-document-error`}
+        classNames={bookingFormFieldClassNames}
+        registerOptions={registerOptions}
+      />
 
       {canRemove ? (
         <button

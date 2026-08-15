@@ -7,6 +7,7 @@ import {
   BOOKING_PASSENGERS_ERROR,
   BOOKING_PHONE_ERROR,
   BOOKING_REQUIRED_ERROR,
+  BOOKING_SEATS_ERROR,
 } from '@shared/lib/messages';
 
 export const MAX_BOOKING_PASSENGERS = 9;
@@ -44,11 +45,7 @@ const passengerSchema = z.object({
   documentNumber: requiredTrimmed,
 });
 
-/**
- * Схема полей брони. Лимит свободных мест — в UI (`seatsShortage`):
- * `seatsAvailable` часто приходит уже после mount формы.
- */
-export const bookingSchema = z.object({
+const bookingFieldsSchema = z.object({
   email: z
     .string()
     .trim()
@@ -69,5 +66,32 @@ export const bookingSchema = z.object({
     .max(MAX_BOOKING_PASSENGERS, { message: BOOKING_PASSENGERS_ERROR }),
 });
 
-export type BookingFormValues = z.infer<typeof bookingSchema>;
+export type BookingSchemaOptions = {
+  seatsAvailable?: number;
+};
+
+/**
+ * Схема брони. `seatsAvailable` опционален (часто после mount, ref-resolver).
+ * UI показывает seats через `seatsWarning`; Zod seats — страховка прямого submit.
+ */
+export function createBookingSchema({
+  seatsAvailable,
+}: BookingSchemaOptions = {}) {
+  return bookingFieldsSchema.superRefine((values, ctx) => {
+    if (
+      seatsAvailable != null &&
+      values.passengers.length > seatsAvailable
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['passengers'],
+        message: BOOKING_SEATS_ERROR,
+      });
+    }
+  });
+}
+
+export const bookingSchema = createBookingSchema();
+
+export type BookingFormValues = z.infer<ReturnType<typeof createBookingSchema>>;
 export type BookingPassengerValues = BookingFormValues['passengers'][number];

@@ -9,6 +9,16 @@ export function searchSchemaForCities(cities: City[], origin: string) {
   });
 }
 
+/**
+ * Ключ кэша resolver = TZ схемы (`createSearchSchema` зависит только от неё).
+ */
+export function searchFormResolverCacheKey(
+  cities: readonly City[],
+  origin: string,
+): string {
+  return resolveTimeZoneByCode(cities, origin);
+}
+
 export function parseSearchForm(values: SearchFormValues, cities: City[]) {
   return searchSchemaForCities(cities, values.origin).safeParse(values);
 }

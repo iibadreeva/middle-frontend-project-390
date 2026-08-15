@@ -1,13 +1,17 @@
-import { useRef } from 'react';
+import { useMemo } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   useForm,
   useWatch,
-  type Resolver,
   type UseFormReturn,
 } from 'react-hook-form';
 import type { City } from '@shared/api';
-import { searchSchemaForCities } from '../parseSearchForm';
+import { useLatestRef } from '@shared/hooks/useLatestRef';
+import { createCachedResolver } from '@shared/lib/createCachedResolver';
+import {
+  searchFormResolverCacheKey,
+  searchSchemaForCities,
+} from '../parseSearchForm';
 import { resolveTimeZoneByCode } from '@shared/lib/resolveCityTimeZone';
 import type { SearchFormValues } from '../resolveSearchValues';
 import { useSearchFormSync } from './useSearchFormSync';
@@ -23,38 +27,30 @@ export function useSearchForm(
   cities: City[],
   onSubmit?: (values: SearchFormValues) => void,
 ): UseSearchFormResult {
-  const citiesRef = useRef(cities);
-  // Resolver должен видеть актуальный список городов без пересоздания useForm.
-  // eslint-disable-next-line react-hooks/refs -- актуальный prop в ref для async resolver
-  citiesRef.current = cities;
-
-  const resolverCacheRef = useRef<{
-    timeZone: string;
-    resolver: Resolver<SearchFormValues>;
-  } | null>(null);
+  // Resolver видит актуальный список городов без пересоздания useForm.
+  const citiesRef = useLatestRef(cities);
+  const onSubmitRef = useLatestRef(onSubmit);
 
   // Resolver и syncSearchFormErrors делят searchSchemaForCities / parseSearchForm.
+  const resolver = useMemo(
+    () =>
+      createCachedResolver<SearchFormValues, string>(
+        (formValues) =>
+          searchFormResolverCacheKey(citiesRef.current, formValues.origin),
+        (formValues) =>
+          zodResolver(
+            searchSchemaForCities(citiesRef.current, formValues.origin),
+          ),
+      ),
+    [citiesRef],
+  );
+
   const form = useForm<SearchFormValues>({
     defaultValues: values,
     mode: 'onSubmit',
     reValidateMode: 'onChange',
     criteriaMode: 'all',
-    resolver: async (formValues, context, options) => {
-      const timeZone = resolveTimeZoneByCode(
-        citiesRef.current,
-        formValues.origin,
-      );
-      const cached = resolverCacheRef.current;
-      if (cached && cached.timeZone === timeZone) {
-        return cached.resolver(formValues, context, options);
-      }
-
-      const resolver = zodResolver(
-        searchSchemaForCities(citiesRef.current, formValues.origin),
-      );
-      resolverCacheRef.current = { timeZone, resolver };
-      return resolver(formValues, context, options);
-    },
+    resolver,
   });
 
   useSearchFormSync(form, values, cities);
@@ -63,7 +59,7 @@ export function useSearchForm(
   const originZone = resolveTimeZoneByCode(cities, origin);
 
   const submit = form.handleSubmit((nextValues) => {
-    onSubmit?.(nextValues);
+    onSubmitRef.current?.(nextValues);
   });
 
   return { form, originZone, submit };

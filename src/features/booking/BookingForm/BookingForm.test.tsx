@@ -413,7 +413,7 @@ describe('BookingForm', () => {
       BOOKING_SEATS_ERROR,
     );
 
-    // seatsShortage short-circuit в onSubmit формы — до RHF handleSubmit.
+    // UX: short-circuit до RHF (одно предупреждение). Zod seats — в хуке.
     fireEvent.submit(screen.getByTestId('booking-form'));
 
     expect(onSubmit).not.toHaveBeenCalled();
@@ -421,7 +421,8 @@ describe('BookingForm', () => {
     expect(screen.getAllByText(BOOKING_SEATS_ERROR)).toHaveLength(1);
   });
 
-  it('does not leave a stale seats field error after removing excess passengers', async () => {
+  // UI short-circuit не создаёт Zod seats-error; stale Zod — в useBookingForm.test.
+  it('clears seats warning after remove when submit was blocked by shortage UI', async () => {
     const user = userEvent.setup();
     render(
       <BookingForm

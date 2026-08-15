@@ -1,10 +1,13 @@
 import { useId, type ReactNode } from 'react';
-import type { FieldErrors } from 'react-hook-form';
+import { FormProvider, useFormState } from 'react-hook-form';
 import type { Money } from '@shared/api';
 import type { BookingFormValues, BookingPassengerValues } from '../bookingSchema';
+import { passengersSectionError } from '../passengersSectionError';
 import { formatPrice, totalMoney } from '@shared/lib/format';
 import { BOOKING_SEATS_ERROR } from '@shared/lib/messages';
 import { FieldError } from '@shared/ui/FieldError';
+import { FormInput } from '@shared/ui/form';
+import { bookingFormFieldClassNames } from './bookingFormFieldClassNames';
 import { BookingFormActions } from './BookingFormActions';
 import styles from './BookingForm.module.css';
 import { PassengerFields } from './PassengerFields';
@@ -24,24 +27,6 @@ type BookingFormProps = {
   onSubmit?: (values: BookingFormValues) => void;
 };
 
-function passengersRootMessage(
-  passengers: FieldErrors<BookingFormValues>['passengers'],
-): string | undefined {
-  if (!passengers) {
-    return undefined;
-  }
-
-  if ('root' in passengers && passengers.root?.message) {
-    return passengers.root.message;
-  }
-
-  if (!Array.isArray(passengers) && typeof passengers.message === 'string') {
-    return passengers.message;
-  }
-
-  return undefined;
-}
-
 export function BookingForm({
   flightSlot,
   unitPrice,
@@ -54,8 +39,6 @@ export function BookingForm({
   onSubmit,
 }: BookingFormProps) {
   const formInstanceId = useId();
-  const emailErrorId = useId();
-  const phoneErrorId = useId();
   const passengersErrorId = useId();
   const externalErrorId = useId();
 
@@ -65,10 +48,10 @@ export function BookingForm({
     passengerCount,
     canAddPassenger,
     seatsShortage,
+    fieldRegisterOptions,
     addPassenger,
     removePassenger,
     submit,
-    onFieldEdit,
   } = useBookingForm({
     initialValues,
     seatsAvailable,
@@ -76,14 +59,14 @@ export function BookingForm({
     onSubmit,
   });
 
-  const {
-    register,
-    formState: { errors },
-  } = form;
-
-  const emailError = errors.email?.message;
-  const phoneError = errors.phone?.message;
-  const passengersError = passengersRootMessage(errors.passengers);
+  // Только `passengers` — email/phone ошибки живут в FormInput.
+  const { errors } = useFormState({
+    control: form.control,
+    name: 'passengers',
+  });
+  const passengersError = passengersSectionError(errors.passengers, {
+    seatsShortage,
+  });
   const passengersDescribedBy = passengersError
     ? passengersErrorId
     : undefined;
@@ -93,140 +76,123 @@ export function BookingForm({
       : null;
 
   return (
-    <form
-      className={styles.form}
-      data-testid="booking-form"
-      noValidate
-      onSubmit={(event) => {
-        if (submitDisabled || submitting || seatsShortage) {
-          event.preventDefault();
-          return;
-        }
-        void submit(event);
-      }}
-      aria-labelledby={formInstanceId}
-      aria-describedby={externalError ? externalErrorId : undefined}
-    >
-      <h2
-        className={styles.heading}
-        data-testid="booking-heading"
-        id={formInstanceId}
+    <FormProvider {...form}>
+      <form
+        className={styles.form}
+        data-testid="booking-form"
+        noValidate
+        onSubmit={(event) => {
+          // seatsShortage: short-circuit — seatsWarning уже на экране.
+          if (submitDisabled || submitting || seatsShortage) {
+            event.preventDefault();
+            return;
+          }
+          void submit(event);
+        }}
+        aria-labelledby={formInstanceId}
+        aria-describedby={externalError ? externalErrorId : undefined}
       >
-        Оформление бронирования
-      </h2>
+        <h2
+          className={styles.heading}
+          data-testid="booking-heading"
+          id={formInstanceId}
+        >
+          Оформление бронирования
+        </h2>
 
-      {flightSlot?.(passengerCount)}
+        {flightSlot?.(passengerCount)}
 
-      <div className={styles.contact} data-testid="booking-contact">
-        <label className={styles.field}>
-          <span className={styles.label}>Email</span>
-          <input
-            className={styles.input}
+        <div className={styles.contact} data-testid="booking-contact">
+          <FormInput<BookingFormValues>
+            name="email"
+            label="Email"
             type="email"
             autoComplete="email"
             disabled={submitting}
-            aria-invalid={Boolean(emailError) || undefined}
-            aria-describedby={emailError ? emailErrorId : undefined}
             data-testid="contact-email"
-            {...register('email', { onChange: () => onFieldEdit() })}
+            errorTestId="contact-email-error"
+            classNames={bookingFormFieldClassNames}
+            registerOptions={fieldRegisterOptions}
           />
-          <FieldError
-            className={styles.error}
-            id={emailErrorId}
-            testId="contact-email-error"
-          >
-            {emailError}
-          </FieldError>
-        </label>
 
-        <label className={styles.field}>
-          <span className={styles.label}>Телефон</span>
-          <input
-            className={styles.input}
+          <FormInput<BookingFormValues>
+            name="phone"
+            label="Телефон"
             type="tel"
             autoComplete="tel"
             disabled={submitting}
-            aria-invalid={Boolean(phoneError) || undefined}
-            aria-describedby={phoneError ? phoneErrorId : undefined}
             data-testid="contact-phone"
-            {...register('phone', { onChange: () => onFieldEdit() })}
+            errorTestId="contact-phone-error"
+            classNames={bookingFormFieldClassNames}
+            registerOptions={fieldRegisterOptions}
           />
-          <FieldError
-            className={styles.error}
-            id={phoneErrorId}
-            testId="contact-phone-error"
-          >
-            {phoneError}
-          </FieldError>
-        </label>
-      </div>
-
-      <div
-        data-testid="passengers-section"
-        role="group"
-        aria-label="Пассажиры"
-        aria-describedby={passengersDescribedBy}
-      >
-        <div className={styles.divider} role="separator">
-          Пассажиры
         </div>
 
-        {seatsShortage ? (
-          <p
-            className={styles.seatsWarning}
-            data-testid="booking-seats-warning"
-            role="alert"
+        <div
+          data-testid="passengers-section"
+          role="group"
+          aria-label="Пассажиры"
+          aria-describedby={passengersDescribedBy}
+        >
+          <div className={styles.divider} role="separator">
+            Пассажиры
+          </div>
+
+          {seatsShortage ? (
+            <p
+              className={styles.seatsWarning}
+              data-testid="booking-seats-warning"
+              role="alert"
+            >
+              {BOOKING_SEATS_ERROR}
+            </p>
+          ) : null}
+
+          <FieldError
+            className={styles.error}
+            id={passengersErrorId}
+            testId="passengers-error"
           >
-            {BOOKING_SEATS_ERROR}
-          </p>
-        ) : null}
+            {passengersError}
+          </FieldError>
+
+          <ul className={styles.passengers} data-testid="passengers-list">
+            {fields.map((field, index) => (
+              <PassengerFields
+                key={field.id}
+                index={index}
+                canRemove={fields.length > 1}
+                disabled={submitting}
+                registerOptions={fieldRegisterOptions}
+                onRemove={() => removePassenger(index)}
+              />
+            ))}
+          </ul>
+        </div>
+
+        <BookingFormActions
+          canAddPassenger={canAddPassenger}
+          submitting={submitting}
+          submitDisabled={submitDisabled}
+          seatsShortage={seatsShortage}
+          totalLabel={totalLabel}
+          onAddPassenger={() => {
+            if (!canAddPassenger || submitting) {
+              return;
+            }
+            addPassenger();
+          }}
+        />
 
         <FieldError
           className={styles.error}
-          id={passengersErrorId}
-          testId="passengers-error"
+          id={externalErrorId}
+          testId="booking-error"
+          live="assertive"
         >
-          {passengersError}
+          {externalError}
         </FieldError>
-
-        <ul className={styles.passengers} data-testid="passengers-list">
-          {fields.map((field, index) => (
-            <PassengerFields
-              key={field.id}
-              index={index}
-              register={register}
-              errors={errors}
-              canRemove={fields.length > 1}
-              disabled={submitting}
-              onFieldEdit={onFieldEdit}
-              onRemove={() => removePassenger(index)}
-            />
-          ))}
-        </ul>
-      </div>
-
-      <BookingFormActions
-        canAddPassenger={canAddPassenger}
-        submitting={submitting}
-        submitDisabled={submitDisabled}
-        seatsShortage={seatsShortage}
-        totalLabel={totalLabel}
-        onAddPassenger={() => {
-          if (!canAddPassenger || submitting) {
-            return;
-          }
-          addPassenger();
-        }}
-      />
-
-      <FieldError
-        className={styles.error}
-        id={externalErrorId}
-        testId="booking-error"
-        live="assertive"
-      >
-        {externalError}
-      </FieldError>
-    </form>
+      </form>
+    </FormProvider>
   );
 }

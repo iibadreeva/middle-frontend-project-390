@@ -3,7 +3,12 @@ import type { City } from '@shared/api';
 import { DEFAULT_CITY_TIME_ZONE } from '@shared/data/cityTimeZones';
 import { todayIsoDate } from '@shared/lib/format';
 import { SEARCH_SAME_CITIES_ERROR } from '@shared/lib/messages';
-import { parseSearchForm, searchSchemaForCities } from './parseSearchForm';
+import { resolveTimeZoneByCode } from '@shared/lib/resolveCityTimeZone';
+import {
+  parseSearchForm,
+  searchFormResolverCacheKey,
+  searchSchemaForCities,
+} from './parseSearchForm';
 import { issueAt } from '@shared/test/zodIssueAt';
 
 const cities: City[] = [
@@ -38,5 +43,35 @@ describe('parseSearchForm', () => {
   it('shares the schema factory with searchSchemaForCities', () => {
     const schema = searchSchemaForCities(cities, 'MOW');
     expect(schema.safeParse(valid).success).toBe(true);
+  });
+});
+
+describe('searchFormResolverCacheKey', () => {
+  it('equals the origin city timeZone used by the schema', () => {
+    expect(searchFormResolverCacheKey(cities, 'MOW')).toBe(
+      resolveTimeZoneByCode(cities, 'MOW'),
+    );
+  });
+
+  it('stays stable when the cities list grows but origin TZ is unchanged', () => {
+    const withExtra: City[] = [
+      ...cities,
+      { code: 'SVX', name: 'Екатеринбург', country: 'Россия' },
+    ];
+
+    expect(searchFormResolverCacheKey(cities, 'MOW')).toBe(
+      searchFormResolverCacheKey(withExtra, 'MOW'),
+    );
+  });
+
+  it('changes when an explicit city timeZone overrides the dictionary', () => {
+    const withApiZone: City[] = [
+      { code: 'MOW', name: 'Москва', country: 'Россия', timeZone: 'UTC' },
+      cities[1],
+    ];
+
+    expect(searchFormResolverCacheKey(cities, 'MOW')).not.toBe(
+      searchFormResolverCacheKey(withApiZone, 'MOW'),
+    );
   });
 });
