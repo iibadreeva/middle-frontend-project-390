@@ -51,7 +51,10 @@ export function useBookingForm({
   const resolver = useMemo(
     () =>
       createCachedResolver<BookingFormValues, number | undefined>(
+        // Ref читается при validate, не при render.
+        // eslint-disable-next-line react-hooks/refs -- deferred read in RHF resolver
         () => seatsAvailableRef.current,
+        // eslint-disable-next-line react-hooks/refs -- deferred read in RHF resolver
         () =>
           zodResolver(
             createBookingSchema({ seatsAvailable: seatsAvailableRef.current }),
@@ -108,6 +111,7 @@ export function useBookingForm({
     remove(index);
   }
 
+  // eslint-disable-next-line react-hooks/refs -- handleSubmit calls this on submit, not render
   const submit = form.handleSubmit((values) => {
     onSubmitRef.current?.(values);
   });

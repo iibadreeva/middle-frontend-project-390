@@ -183,12 +183,13 @@ describe('FormInput', () => {
 
   it('does not re-render when an unrelated field updates', async () => {
     const user = userEvent.setup();
-    let emailRenders = 0;
+    const emailRendersRef = { current: 0 };
 
     type Pair = { email: string; phone: string };
 
     function EmailField() {
-      emailRenders += 1;
+      // eslint-disable-next-line react-hooks/immutability -- render counter for isolation assert
+      emailRendersRef.current += 1;
       return (
         <FormInput<Pair>
           name="email"
@@ -215,10 +216,10 @@ describe('FormInput', () => {
     }
 
     render(<Harness />);
-    const rendersAfterMount = emailRenders;
+    const rendersAfterMount = emailRendersRef.current;
 
     await user.type(screen.getByTestId('phone-input'), '1');
 
-    expect(emailRenders).toBe(rendersAfterMount);
+    expect(emailRendersRef.current).toBe(rendersAfterMount);
   });
 });

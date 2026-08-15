@@ -72,6 +72,20 @@ export default tseslint.config(
     },
   },
   {
+    files: ['src/shared/ui/Toast/ToastProvider.tsx'],
+    rules: {
+      // Provider + useToast в одном модуле — обычный паттерн контекста.
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
+    files: ['src/**/*.test.{ts,tsx}'],
+    rules: {
+      // RHF watch() в тестовых harness — не прод-код.
+      'react-hooks/incompatible-library': 'off',
+    },
+  },
+  {
     files: ['src/**/*.{ts,tsx}'],
     plugins: { boundaries },
     settings: createBoundariesSettings(),

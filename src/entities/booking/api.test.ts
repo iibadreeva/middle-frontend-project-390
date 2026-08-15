@@ -22,7 +22,7 @@ describe('booking HTTP client', () => {
   });
 
   it('getBooking encodes code in the path', async () => {
-    const fetchMock = vi.fn(async (_url: string | URL | Request) =>
+    const fetchMock = vi.fn(async () =>
       Response.json({ code: 'A/B', status: 'confirmed' }),
     );
     vi.stubGlobal('fetch', fetchMock);

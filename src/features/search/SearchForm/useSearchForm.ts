@@ -35,8 +35,10 @@ export function useSearchForm(
   const resolver = useMemo(
     () =>
       createCachedResolver<SearchFormValues, string>(
+        // eslint-disable-next-line react-hooks/refs -- deferred read in RHF resolver
         (formValues) =>
           searchFormResolverCacheKey(citiesRef.current, formValues.origin),
+        // eslint-disable-next-line react-hooks/refs -- deferred read in RHF resolver
         (formValues) =>
           zodResolver(
             searchSchemaForCities(citiesRef.current, formValues.origin),
@@ -58,6 +60,7 @@ export function useSearchForm(
   const origin = useWatch({ control: form.control, name: 'origin' });
   const originZone = resolveTimeZoneByCode(cities, origin);
 
+  // eslint-disable-next-line react-hooks/refs -- handleSubmit calls this on submit, not render
   const submit = form.handleSubmit((nextValues) => {
     onSubmitRef.current?.(nextValues);
   });
