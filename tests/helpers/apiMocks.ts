@@ -45,7 +45,7 @@ export async function mockFlightsApi(
   handler: (url: URL) => { status: number; body: unknown },
 ) {
   // Только список /api/flights[?…], не /api/flights/:id.
-  // Без route.fallback() — иначе proxy на мёртвый Prism вешает тест.
+  // Без route.fallback() — иначе proxy на недоступный API вешает тест.
   await page.route(/\/api\/flights(?:\?|$)/, async (route) => {
     const url = new URL(route.request().url());
     const response = handler(url);

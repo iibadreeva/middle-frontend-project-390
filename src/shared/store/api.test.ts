@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../lib/errors';
-import { isAbortError, toQueryError } from './api';
+import { isAbortError, runQuery, toQueryError } from './api';
 
 describe('toQueryError', () => {
   it('maps ApiError with status and message', () => {
@@ -56,5 +56,41 @@ describe('isAbortError', () => {
     expect(isAbortError({ name: 'TypeError', message: 'fail' })).toBe(false);
     expect(isAbortError(null)).toBe(false);
     expect(isAbortError('AbortError')).toBe(false);
+  });
+});
+
+describe('runQuery', () => {
+  it('returns data on success', async () => {
+    const signal = new AbortController().signal;
+    await expect(runQuery(signal, async () => 42)).resolves.toEqual({
+      data: 42,
+    });
+  });
+
+  it('returns mapped error for ApiError even when the signal is already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(
+      runQuery(controller.signal, async () => {
+        throw new ApiError('Cities unavailable', 500);
+      }),
+    ).resolves.toEqual({
+      error: { status: 500, message: 'Cities unavailable' },
+    });
+
+    spy.mockRestore();
+  });
+
+  it('rethrows AbortError so RTK can ignore superseded requests', async () => {
+    const signal = new AbortController().signal;
+    const abortError = new DOMException('Aborted', 'AbortError');
+
+    await expect(
+      runQuery(signal, async () => {
+        throw abortError;
+      }),
+    ).rejects.toBe(abortError);
   });
 });

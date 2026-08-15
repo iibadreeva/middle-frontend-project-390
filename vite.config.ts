@@ -6,7 +6,7 @@ import react from '@vitejs/plugin-react';
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 const apiProxy = {
-  '/api': 'http://localhost:4010',
+  '/api': 'http://localhost:8080',
 };
 
 export default defineConfig({

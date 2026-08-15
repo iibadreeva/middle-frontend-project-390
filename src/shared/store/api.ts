@@ -70,13 +70,16 @@ export function getQueryErrorMessage(error: unknown): string | undefined {
 }
 
 export async function runQuery<T>(
-  signal: AbortSignal,
+  _signal: AbortSignal,
   execute: () => Promise<T>,
 ): Promise<{ data: T } | { error: ApiQueryError }> {
   try {
     return { data: await execute() };
   } catch (error: unknown) {
-    if (signal.aborted) {
+    // Только AbortError: при гонке «HTTP-ошибка + abort следующего запроса»
+    // RTK signal уже aborted, но error — ApiError. Пробрасывать его нельзя —
+    // иначе RTK не фиксирует isError и уходит в цикл refetch.
+    if (isAbortError(error)) {
       throw error;
     }
     console.error(error);

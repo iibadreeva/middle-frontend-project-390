@@ -3,7 +3,7 @@
 
 ## Flight Booking (frontend)
 
-Клиентское приложение бронирования рейсов: React + Vite + TypeScript. API описывается в `contract/openapi.yaml`, локально его имитирует Prism.
+Клиентское приложение бронирования рейсов: React + Vite + TypeScript. API описывается в `contract/openapi.yaml`; локально и в проверке работает реальный сервер `@hexlet/frontend-flight-booking-server` (тот же контракт `/api/...`).
 
 ### Структура `src/`
 
@@ -18,16 +18,25 @@ Feature-based раскладка с жёсткими границами (ESLint)
 ### Запуск
 
 ```bash
-make install          # npm ci
-make mock             # Prism на http://localhost:4010
-make dev              # Vite на http://localhost:5173, /api → мок
+make install                                          # npm ci
+npx frontend-flight-booking-server start              # API на http://localhost:8080
+make dev                                              # Vite на http://localhost:5173, /api → :8080
 ```
+
+Собранное приложение и API на одном origin (как в проверке и деплое):
+
+```bash
+make build
+make start            # SPA из dist + /api на http://localhost:8080
+```
+
+Опционально для работы только по контракту без реального бэкенда: `make mock` (Prism на `:4010`). Для обычной разработки и тестов нужен реальный сервер.
 
 В `package.json` есть `overrides.ajv-formats` — optional peer `ajv-formats@^2` у `@hookform/resolvers` против `ajv-formats@3` из `@hexlet/frontend-flight-booking-server` (fastify). Peer ranges `@testing-library/*` закрыты явной зависимостью `@testing-library/dom`.
 
 ### Тесты
 
-Browser smoke-тест (Vitest + Playwright) читает адрес **только** из `APP_URL` (в самом тесте хардкода нет). Дефолт `http://localhost:5173` задаётся в `Makefile` / `scripts/run-tests.mjs`.
+Browser smoke-тест (Vitest + Playwright) читает адрес **только** из `APP_URL` (в самом тесте хардкода нет). Дефолт `http://localhost:8080` задаётся в `Makefile` / `scripts/run-tests.mjs`.
 
 Проверки smoke:
 
@@ -38,15 +47,11 @@ Browser smoke-тест (Vitest + Playwright) читает адрес **толь�
 
 ```bash
 make browsers                                 # один раз: Chromium для Playwright
-make mock && make dev                         # в отдельных терминалах
-make test                                     # APP_URL по умолчанию http://localhost:5173
-                                              # (dev-сервер отдаёт свежий код сам)
-make build && make preview                    # в отдельном терминале
-APP_URL=http://localhost:4173 make test       # против vite preview; нужен свежий dist
+make build && make start                      # в отдельном терминале: SPA + API на :8080
+make test                                     # APP_URL по умолчанию http://localhost:8080
 ```
 
-Юнит-тесты (`src/**/*.test.tsx`) и browser-тесты (`tests/**/*.spec.ts`) идут одной командой `make test`.
-Preview не подхватывает правки автоматически — перед тестами против 4173 пересоберите `make build` (или перезапустите preview после сборки).
+Юнит-тесты (`src/**/*.test.tsx`) и browser-тесты (`tests/**/*.spec.ts`) идут одной командой `make test`. Перед `make start` нужна свежая сборка (`make build`).
 ### Поиск рейсов
 
 На главной (`/`) форма и список рейсов работают через API:
@@ -62,7 +67,7 @@ Preview не подхватывает правки автоматически �
 
 Состояния результата: загрузка (`flights-loading`), список (`flight-results` / `flight-result-item`), пусто (`flights-empty`), ошибка (`flights-error`). Кнопка `book-flight` ведёт на `/booking/:id` (дальше — экран оформления).
 
-Browser-тесты поиска (`tests/flight-search.spec.ts`) подменяют ответы API через `page.route`, поэтому не зависят от содержимого Prism. Общие фикстуры городов/рейсов и хелперы дат живут в `src/shared/test/fixtures.ts` — даты в тестах считаются от «сегодня», чтобы не устаревать.
+Browser-тесты поиска (`tests/flight-search.spec.ts`) подменяют ответы API через `page.route`, поэтому не зависят от данных сервера. Общие фикстуры городов/рейсов и хелперы дат живут в `src/shared/test/fixtures.ts` — даты в тестах считаются от «сегодня», чтобы не устаревать.
 
 Ключевые `data-testid` поиска: `flight-search-form`, `search-origin`, `search-destination`, `search-date`, `search-passengers`, `search-submit`, `search-origin-error`, `search-destination-error`, `search-date-error`, `search-passengers-error`, `search-form-error` (только внешние/серверные ошибки), `cities-fallback-notice`, `flight-results`, `flight-result-item`, `flights-empty`, `flights-error`, `flights-loading`, `flight-departure`, `flight-arrival`, `flight-price`, `flight-total-price`, `flight-duration`, `flight-seats`, `flight-seats-warning`, `book-flight`.
 
@@ -82,5 +87,5 @@ Workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) на кажды�
 
 1. `npm ci`, установка Chromium
 2. lint и production-сборка
-3. подъём Prism-мока и `vite preview` (порт 4173)
-4. `APP_URL=http://localhost:4173 make test`
+3. `make start` (SPA из `dist` + API на порту 8080)
+4. `APP_URL=http://localhost:8080 make test`

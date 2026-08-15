@@ -4,7 +4,7 @@ export function requireAppUrl(): string {
   const appUrl = process.env.APP_URL ?? '';
   if (!appUrl) {
     throw new Error(
-      'APP_URL не задан. Запуск: `make test` / `npm run test` (дефолт в Makefile и scripts/run-tests.mjs) или `APP_URL=http://localhost:5173 npm run test`.',
+      'APP_URL не задан. Запуск: `make test` / `npm run test` (дефолт в Makefile и scripts/run-tests.mjs) или `APP_URL=http://localhost:8080 npm run test`.',
     );
   }
   return appUrl;

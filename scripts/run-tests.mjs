@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
  */
 const env = {
   ...process.env,
-  APP_URL: process.env.APP_URL || 'http://localhost:5173',
+  APP_URL: process.env.APP_URL || 'http://localhost:8080',
 };
 
 const result = spawnSync('npx', ['vitest', 'run', ...process.argv.slice(2)], {

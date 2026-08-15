@@ -27,26 +27,23 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Start API mock
-        run: npm run mock &
+      - name: Start app and API
+        run: make start &
 
-      - name: Start preview server
-        run: npm run preview &
-
-      - name: Wait for preview
+      - name: Wait for server
         run: |
           for i in $(seq 1 60); do
-            if curl -sf http://localhost:4173 >/dev/null; then
-              echo "preview is up"
+            if curl -sf http://localhost:8080 >/dev/null; then
+              echo "server is up"
               exit 0
             fi
-            echo "waiting for preview... ($i)"
+            echo "waiting for server... ($i)"
             sleep 1
           done
-          echo "preview did not become ready in time"
+          echo "server did not become ready in time"
           exit 1
 
       - name: Run tests
         env:
-          APP_URL: http://localhost:4173
+          APP_URL: http://localhost:8080
         run: make test

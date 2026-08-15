@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CITIES_FALLBACK_NOTICE } from '@shared/lib/messages';
 import { TestProviders } from '@shared/test/providers';
+import { createTestStore } from '@shared/test/store';
+import { cityApi } from '../api';
 import { FALLBACK_CITIES } from '../data/fallbackCities';
 import { useCities } from './useCities';
 
@@ -72,5 +74,57 @@ describe('useCities', () => {
     });
     expect(result.current.cities).toEqual(FALLBACK_CITIES);
     expect(result.current.notice).toBe(CITIES_FALLBACK_NOTICE);
+  });
+
+  it('stays ready with notice while a refetch after error is in flight', async () => {
+    let calls = 0;
+    let releaseRefetch: (value: Response) => void = () => {};
+    const refetchResponse = new Promise<Response>((resolve) => {
+      releaseRefetch = resolve;
+    });
+
+    vi.mocked(fetch).mockImplementation(() => {
+      calls += 1;
+      if (calls === 1) {
+        return Promise.resolve(
+          Response.json(
+            { code: 'server_error', message: 'boom' },
+            { status: 500 },
+          ),
+        );
+      }
+      return refetchResponse;
+    });
+
+    const store = createTestStore();
+    const { result } = renderHook(() => useCities(), {
+      wrapper: ({ children }) => (
+        <TestProviders store={store}>{children}</TestProviders>
+      ),
+    });
+
+    await waitFor(() => {
+      expect(result.current.notice).toBe(CITIES_FALLBACK_NOTICE);
+    });
+    expect(result.current.ready).toBe(true);
+
+    void store.dispatch(
+      cityApi.endpoints.getCities.initiate(undefined, { forceRefetch: true }),
+    );
+
+    await waitFor(() => {
+      expect(calls).toBe(2);
+    });
+    expect(result.current.ready).toBe(true);
+    expect(result.current.notice).toBe(CITIES_FALLBACK_NOTICE);
+    expect(result.current.cities).toEqual(FALLBACK_CITIES);
+
+    releaseRefetch(
+      Response.json({ code: 'server_error', message: 'boom' }, { status: 500 }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.notice).toBe(CITIES_FALLBACK_NOTICE);
+    });
   });
 });

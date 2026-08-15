@@ -13,12 +13,16 @@ export function useCities(): {
   const apiCities = query.data;
   const cities =
     apiCities && apiCities.length > 0 ? apiCities : FALLBACK_CITIES;
+  // `query.error` сохраняется и на время refetch после rejected — иначе
+  // notice/ready мигают, поиск уходит в skip и карточки снова subscribe → цикл.
   const failed =
-    query.isError || (query.isSuccess && (apiCities?.length ?? 0) === 0);
+    query.isError ||
+    Boolean(query.error) ||
+    (query.isSuccess && (apiCities?.length ?? 0) === 0);
 
   return {
     cities,
     notice: failed ? CITIES_FALLBACK_NOTICE : null,
-    ready: query.isSuccess || query.isError,
+    ready: query.isSuccess || failed,
   };
 }

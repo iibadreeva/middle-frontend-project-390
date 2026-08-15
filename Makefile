@@ -1,4 +1,4 @@
-export APP_URL ?= http://localhost:5173
+export APP_URL ?= http://localhost:8080
 
 install:
 	npm ci
@@ -15,6 +15,9 @@ lint:
 mock:
 	npm run mock
 
+start:
+	npx frontend-flight-booking-server start -s dist
+
 preview:
 	npm run preview
 
@@ -24,4 +27,4 @@ browsers:
 test:
 	npm run test
 
-.PHONY: install dev build lint mock preview browsers test
+.PHONY: install dev build lint mock start preview browsers test
