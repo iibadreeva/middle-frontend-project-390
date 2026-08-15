@@ -5,7 +5,7 @@ import {
   BookingFlightSkeleton,
   BookingForm,
   BookingSuccess,
-  useCreateBooking,
+  useCreateBookingWithToast,
   useFlight,
   type BookingFormValues,
 } from '@features/booking';
@@ -21,9 +21,11 @@ export function BookingPage() {
     status: createStatus,
     booking,
     errorMessage,
+    announceError,
     submit,
     clearError,
-  } = useCreateBooking(flightId);
+    dismissTransientToast,
+  } = useCreateBookingWithToast(flightId);
 
   const renderFlightSlot = useCallback(
     (passengerCount: number) => (
@@ -36,6 +38,9 @@ export function BookingPage() {
     if (!flightId || flightStatus !== 'success') {
       return;
     }
+
+    // Снимаем прошлый booking-toast до retry/success (чужие toast не трогаем).
+    dismissTransientToast();
 
     submit({
       flightId,
@@ -105,6 +110,7 @@ export function BookingPage() {
         submitDisabled={flightStatus !== 'success'}
         submitting={createStatus === 'submitting'}
         externalError={createStatus === 'error' ? errorMessage : null}
+        announceExternalError={announceError}
         onDismissExternalError={clearError}
         onSubmit={handleSubmit}
       />

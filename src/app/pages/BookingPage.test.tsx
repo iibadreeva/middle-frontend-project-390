@@ -7,7 +7,7 @@ import {
   useNavigate,
 } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { FLIGHT_NOT_FOUND } from '@shared/lib/messages';
+import { BOOKING_CREATE_ERROR, BOOKING_CREATE_ERROR_HINT, FLIGHT_NOT_FOUND } from '@shared/lib/messages';
 import { stubBookingApiFetch } from '@shared/test/apiFetch';
 import { fixtureBooking, fixtureCities, fixtureFlights } from '@shared/test/fixtures';
 import { TestProviders } from '@shared/test/providers';
@@ -174,7 +174,116 @@ describe('BookingPage', () => {
         'Укажите flightId',
       );
     });
+    expect(screen.queryByTestId('toast-item')).not.toBeInTheDocument();
     expect(screen.queryByTestId('booking-success')).not.toBeInTheDocument();
+  });
+
+  it('shows a toast and sticky booking-error when create fails with a server error', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      stubBookingApiFetch({
+        createBooking: () =>
+          Response.json(
+            { code: 'server_error', message: 'Request failed: 500' },
+            { status: 500 },
+          ),
+      }),
+    );
+
+    renderBooking(bookingHref('fl_1'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('booking-submit')).toBeEnabled();
+    });
+
+    await fillValidForm(user);
+    await user.click(screen.getByTestId('booking-submit'));
+
+    expect(await screen.findByTestId('toast-item')).toHaveTextContent(
+      BOOKING_CREATE_ERROR,
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('booking-error')).toHaveTextContent(
+        BOOKING_CREATE_ERROR_HINT,
+      );
+    });
+  });
+
+  it('dismisses the toast when the sticky booking-error is cleared by editing', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      'fetch',
+      stubBookingApiFetch({
+        createBooking: () =>
+          Response.json(
+            { code: 'server_error', message: 'Request failed: 500' },
+            { status: 500 },
+          ),
+      }),
+    );
+
+    renderBooking(bookingHref('fl_1'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('booking-submit')).toBeEnabled();
+    });
+
+    await fillValidForm(user);
+    await user.click(screen.getByTestId('booking-submit'));
+
+    expect(await screen.findByTestId('toast-item')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('booking-error')).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByTestId('contact-email'), 'x');
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('booking-error')).not.toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('toast-item')).not.toBeInTheDocument();
+  });
+
+  it('clears the error toast after a successful retry without editing fields', async () => {
+    const user = userEvent.setup();
+    let createAttempts = 0;
+    vi.stubGlobal(
+      'fetch',
+      stubBookingApiFetch({
+        createBooking: () => {
+          createAttempts += 1;
+          if (createAttempts === 1) {
+            return Response.json(
+              { code: 'server_error', message: 'Request failed: 500' },
+              { status: 500 },
+            );
+          }
+          return Response.json(fixtureBooking(), { status: 201 });
+        },
+      }),
+    );
+
+    renderBooking(bookingHref('fl_1'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('booking-submit')).toBeEnabled();
+    });
+
+    await fillValidForm(user);
+    await user.click(screen.getByTestId('booking-submit'));
+
+    expect(await screen.findByTestId('toast-item')).toHaveTextContent(
+      BOOKING_CREATE_ERROR,
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('booking-error')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByTestId('booking-submit'));
+
+    expect(await screen.findByTestId('booking-success')).toBeInTheDocument();
+    expect(screen.queryByTestId('toast-item')).not.toBeInTheDocument();
   });
 
   it('retries flight loading after an error', async () => {

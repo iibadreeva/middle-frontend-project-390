@@ -22,6 +22,8 @@ type BookingFormProps = {
   submitDisabled?: boolean;
   submitting?: boolean;
   externalError?: string | null;
+  /** Live-region для sticky-ошибки; выключайте, если ошибку уже объявляет toast. */
+  announceExternalError?: boolean;
   onDismissExternalError?: () => void;
   onSubmit?: (values: BookingFormValues) => void;
 };
@@ -34,6 +36,7 @@ export function BookingForm({
   submitDisabled = false,
   submitting = false,
   externalError = null,
+  announceExternalError = true,
   onDismissExternalError,
   onSubmit,
 }: BookingFormProps) {
@@ -187,7 +190,7 @@ export function BookingForm({
           className={styles.error}
           id={externalErrorId}
           testId="booking-error"
-          live="assertive"
+          live={announceExternalError ? 'assertive' : undefined}
         >
           {externalError}
         </FieldError>

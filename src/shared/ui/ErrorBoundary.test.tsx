@@ -92,6 +92,128 @@ describe('ErrorBoundary', () => {
     expect(screen.queryByTestId('error-boundary')).not.toBeInTheDocument();
   });
 
+  it('renders fallbackRender with error and retry that restores children', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    function FallbackRetryHarness() {
+      const [fail, setFail] = useState(true);
+
+      return (
+        <>
+          <button
+            type="button"
+            data-testid="fix-boom"
+            onClick={() => setFail(false)}
+          >
+            fix
+          </button>
+          <ErrorBoundary
+            fallbackRender={({ error, retry }) => (
+              <div data-testid="render-fallback">
+                <p data-testid="render-error">{error.message}</p>
+                <button type="button" data-testid="render-retry" onClick={retry}>
+                  retry
+                </button>
+              </div>
+            )}
+          >
+            <Boom fail={fail} />
+          </ErrorBoundary>
+        </>
+      );
+    }
+
+    render(<FallbackRetryHarness />);
+
+    expect(screen.getByTestId('render-fallback')).toBeInTheDocument();
+    expect(screen.getByTestId('render-error')).toHaveTextContent('boom');
+
+    await user.click(screen.getByTestId('fix-boom'));
+    await user.click(screen.getByTestId('render-retry'));
+
+    expect(screen.getByTestId('boom-ok')).toHaveTextContent('ok');
+    expect(screen.queryByTestId('render-fallback')).not.toBeInTheDocument();
+  });
+
+  it('prefers fallbackRender over fallback', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    render(
+      <ErrorBoundary
+        fallback={<p data-testid="static-fallback">static</p>}
+        fallbackRender={() => <p data-testid="render-fallback">render</p>}
+      >
+        <Boom fail />
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByTestId('render-fallback')).toBeInTheDocument();
+    expect(screen.queryByTestId('static-fallback')).not.toBeInTheDocument();
+  });
+
+  it('normalizes a non-Error throw for fallbackRender', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    function ThrowString(): never {
+      throw 'string boom';
+    }
+
+    render(
+      <ErrorBoundary
+        fallbackRender={({ error }) => (
+          <p data-testid="render-error">{error.message}</p>
+        )}
+      >
+        <ThrowString />
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByTestId('render-error')).toHaveTextContent('string boom');
+  });
+
+  it('resets to children when resetKeys change after an error', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { rerender } = render(
+      <ErrorBoundary resetKeys={[1]}>
+        <Boom fail />
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByTestId('error-boundary')).toBeInTheDocument();
+
+    rerender(
+      <ErrorBoundary resetKeys={[2]}>
+        <Boom fail={false} />
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByTestId('boom-ok')).toHaveTextContent('ok');
+    expect(screen.queryByTestId('error-boundary')).not.toBeInTheDocument();
+  });
+
+  it('keeps the fallback when resetKeys stay the same', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { rerender } = render(
+      <ErrorBoundary resetKeys={[1]}>
+        <Boom fail />
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByTestId('error-boundary')).toBeInTheDocument();
+
+    rerender(
+      <ErrorBoundary resetKeys={[1]}>
+        <Boom fail={false} />
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByTestId('error-boundary')).toBeInTheDocument();
+    expect(screen.queryByTestId('boom-ok')).not.toBeInTheDocument();
+  });
+
   it('calls onError instead of console.error when provided', () => {
     const onError = vi.fn();
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});

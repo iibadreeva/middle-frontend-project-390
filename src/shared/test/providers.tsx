@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Provider } from 'react-redux';
 import type { City } from '@entities/city';
 import type { AppStore } from '../store';
+import { ToastProvider } from '../ui/Toast';
 import { createTestStore } from './store';
 
 type TestProvidersProps = {
@@ -19,5 +20,9 @@ export function TestProviders({
     () => store ?? createTestStore(cities ? { cities } : undefined),
   );
 
-  return <Provider store={testStore}>{children}</Provider>;
+  return (
+    <Provider store={testStore}>
+      <ToastProvider>{children}</ToastProvider>
+    </Provider>
+  );
 }

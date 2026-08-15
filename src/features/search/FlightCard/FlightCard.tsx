@@ -7,18 +7,27 @@ import {
   type Flight,
 } from '@entities/flight';
 import { formatDateTime } from '@shared/lib/format';
-import { resolveFlightCityTimeZone } from '@shared/lib/resolveCityTimeZone';
+import {
+  resolveFlightCityTimeZone,
+  type CityTimeZoneSource,
+} from '@shared/lib/resolveCityTimeZone';
 import styles from './FlightCard.module.css';
 
-type FlightCardProps = {
+export type FlightCardContentProps = {
   flight: Flight;
   passengers: number;
   /** Маршрут бронирования из слоя app — фича не должна хардкодить пути приложения. */
   bookHref: string;
+  cities: readonly CityTimeZoneSource[];
 };
 
-export function FlightCard({ flight, passengers, bookHref }: FlightCardProps) {
-  const { cities } = useCities();
+/** Презентационная карточка без подписки на cities (для списка с общим ErrorBoundary). */
+export function FlightCardContent({
+  flight,
+  passengers,
+  bookHref,
+  cities,
+}: FlightCardContentProps) {
   const seatsShortage = flight.seatsAvailable < passengers;
   const departureZone = resolveFlightCityTimeZone(cities, flight.origin);
   const arrivalZone = resolveFlightCityTimeZone(cities, flight.destination);
@@ -89,5 +98,19 @@ export function FlightCard({ flight, passengers, bookHref }: FlightCardProps) {
         )}
       </div>
     </article>
+  );
+}
+
+type FlightCardProps = Omit<FlightCardContentProps, 'cities'>;
+
+export function FlightCard({ flight, passengers, bookHref }: FlightCardProps) {
+  const { cities } = useCities();
+  return (
+    <FlightCardContent
+      flight={flight}
+      passengers={passengers}
+      bookHref={bookHref}
+      cities={cities}
+    />
   );
 }

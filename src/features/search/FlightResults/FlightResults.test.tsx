@@ -10,10 +10,13 @@ const flight = fixtureFlights[0];
 describe('FlightResults', () => {
   it('marks loading and empty states as status', () => {
     const { rerender } = render(<FlightResults status="loading" />);
-    expect(screen.getByTestId('flights-loading')).toHaveAttribute(
-      'role',
-      'status',
-    );
+    const loading = screen.getByTestId('flights-loading');
+    expect(loading).toHaveAttribute('role', 'status');
+    expect(loading).toHaveAttribute('aria-busy', 'true');
+    expect(loading).toHaveAttribute('aria-label', 'Ищем подходящие рейсы');
+    expect(loading.tagName).toBe('DIV');
+    expect(loading.querySelector('ul')).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getAllByTestId('flight-card-skeleton')).toHaveLength(4);
 
     rerender(
       <FlightResults

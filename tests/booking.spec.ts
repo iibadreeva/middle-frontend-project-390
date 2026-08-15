@@ -1,6 +1,6 @@
 import type { Browser, Page } from 'playwright';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { BOOKING_CREATE_ERROR, BOOKING_REQUIRED_ERROR } from '@shared/lib/messages';
+import { BOOKING_CREATE_ERROR, BOOKING_CREATE_ERROR_HINT, BOOKING_REQUIRED_ERROR } from '@shared/lib/messages';
 import {
   fixtureBooking,
   fixtureFlights,
@@ -252,7 +252,7 @@ describe('booking', () => {
     expect(await page.getByTestId('booking-success').count()).toBe(0);
   });
 
-  it('shows booking-error when the create request fails', async () => {
+  it('shows a toast and sticky booking-error when the create request fails', async () => {
     await mockFlightByIdApi(page, 'fl_1', fixtureFlights[0]);
     await page.route('**/api/bookings', async (route) => {
       if (route.request().method() !== 'POST') {
@@ -273,9 +273,13 @@ describe('booking', () => {
     await fillValidBookingForm(page);
     await page.getByTestId('booking-submit').click();
 
+    await page.getByTestId('toast-item').waitFor({ state: 'visible' });
+    expect(await page.getByTestId('toast-item').textContent()).toContain(
+      BOOKING_CREATE_ERROR,
+    );
     await page.getByTestId('booking-error').waitFor({ state: 'visible' });
     expect(await page.getByTestId('booking-error').textContent()).toContain(
-      BOOKING_CREATE_ERROR,
+      BOOKING_CREATE_ERROR_HINT,
     );
   });
 });

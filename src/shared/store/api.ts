@@ -11,10 +11,38 @@ export function toQueryError(error: unknown): ApiQueryError {
   if (error instanceof ApiError) {
     return { status: error.status, message: error.message };
   }
-  if (error instanceof Error) {
-    return { message: error.message, name: error.name };
+  // Duck-typing: DOMException/Error из другого realm может не пройти instanceof.
+  if (
+    error &&
+    typeof error === 'object' &&
+    'message' in error &&
+    typeof error.message === 'string'
+  ) {
+    const status =
+      'status' in error && typeof error.status === 'number'
+        ? error.status
+        : undefined;
+    const name =
+      'name' in error && typeof error.name === 'string'
+        ? error.name
+        : undefined;
+    return {
+      message: error.message,
+      ...(status !== undefined ? { status } : {}),
+      ...(name !== undefined ? { name } : {}),
+    };
   }
   return { message: String(error) };
+}
+
+/** AbortError из fetch/RTK или сериализованный аналог (в т.ч. из другого realm). */
+export function isAbortError(error: unknown): boolean {
+  return Boolean(
+    error &&
+      typeof error === 'object' &&
+      'name' in error &&
+      error.name === 'AbortError',
+  );
 }
 
 export function getQueryErrorStatus(error: unknown): number | undefined {

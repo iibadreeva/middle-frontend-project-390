@@ -3,7 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { useState, type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureBooking } from '@shared/test/fixtures';
-import { BOOKING_CREATE_ERROR } from '@shared/lib/messages';
+import {
+  BOOKING_CREATE_ERROR,
+  BOOKING_CREATE_ERROR_HINT,
+} from '@shared/lib/messages';
 import { TestProviders } from '@shared/test/providers';
 import { useCreateBooking } from './useCreateBooking';
 
@@ -51,6 +54,7 @@ describe('useCreateBooking', () => {
   });
 
   it('surfaces the server validation message on 400', async () => {
+    const onTransientError = vi.fn();
     vi.mocked(fetch).mockResolvedValue(
       Response.json(
         { code: 'validation_error', message: 'Укажите flightId' },
@@ -58,7 +62,14 @@ describe('useCreateBooking', () => {
       ),
     );
 
-    const { result } = renderHook(() => useCreateBooking(), { wrapper });
+    const { result } = renderHook(
+      () =>
+        useCreateBooking(undefined, {
+          onTransientError,
+          suppressStickyAnnounce: true,
+        }),
+      { wrapper },
+    );
 
     act(() => {
       result.current.submit(requestBody);
@@ -68,10 +79,13 @@ describe('useCreateBooking', () => {
       expect(result.current.status).toBe('error');
     });
     expect(result.current.errorMessage).toBe('Укажите flightId');
+    expect(result.current.announceError).toBe(true);
     expect(result.current.booking).toBeNull();
+    expect(onTransientError).not.toHaveBeenCalled();
   });
 
-  it('uses a generic message for non-validation API errors', async () => {
+  it('keeps a sticky form error and notifies for non-validation API errors', async () => {
+    const onTransientError = vi.fn();
     vi.mocked(fetch).mockResolvedValue(
       Response.json(
         { code: 'server_error', message: 'Request failed: 500' },
@@ -79,7 +93,14 @@ describe('useCreateBooking', () => {
       ),
     );
 
-    const { result } = renderHook(() => useCreateBooking(), { wrapper });
+    const { result } = renderHook(
+      () =>
+        useCreateBooking(undefined, {
+          onTransientError,
+          suppressStickyAnnounce: true,
+        }),
+      { wrapper },
+    );
 
     act(() => {
       result.current.submit(requestBody);
@@ -88,10 +109,37 @@ describe('useCreateBooking', () => {
     await waitFor(() => {
       expect(result.current.status).toBe('error');
     });
-    expect(result.current.errorMessage).toBe(BOOKING_CREATE_ERROR);
+    expect(result.current.errorMessage).toBe(BOOKING_CREATE_ERROR_HINT);
+    expect(result.current.announceError).toBe(false);
+    expect(onTransientError).toHaveBeenCalledWith(BOOKING_CREATE_ERROR);
   });
 
-  it('falls back to a generic message on network failure', async () => {
+  it('keeps a sticky form error and notifies on network failure', async () => {
+    const onTransientError = vi.fn();
+    vi.mocked(fetch).mockRejectedValue(new Error('offline'));
+
+    const { result } = renderHook(
+      () =>
+        useCreateBooking(undefined, {
+          onTransientError,
+          suppressStickyAnnounce: true,
+        }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.submit(requestBody);
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('error');
+    });
+    expect(result.current.errorMessage).toBe(BOOKING_CREATE_ERROR_HINT);
+    expect(result.current.announceError).toBe(false);
+    expect(onTransientError).toHaveBeenCalledWith(BOOKING_CREATE_ERROR);
+  });
+
+  it('announces sticky non-validation errors when suppressStickyAnnounce is omitted', async () => {
     vi.mocked(fetch).mockRejectedValue(new Error('offline'));
 
     const { result } = renderHook(() => useCreateBooking(), { wrapper });
@@ -104,6 +152,81 @@ describe('useCreateBooking', () => {
       expect(result.current.status).toBe('error');
     });
     expect(result.current.errorMessage).toBe(BOOKING_CREATE_ERROR);
+    expect(result.current.announceError).toBe(true);
+  });
+
+  it('still announces sticky error when onTransientError is a no-op without suppressStickyAnnounce', async () => {
+    const onTransientError = vi.fn();
+    vi.mocked(fetch).mockRejectedValue(new Error('offline'));
+
+    const { result } = renderHook(
+      () => useCreateBooking(undefined, { onTransientError }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.submit(requestBody);
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('error');
+    });
+    expect(result.current.announceError).toBe(true);
+    expect(onTransientError).toHaveBeenCalledWith(BOOKING_CREATE_ERROR);
+  });
+
+  it('does not notify for a 400 response even when the message is empty', async () => {
+    const onTransientError = vi.fn();
+    vi.mocked(fetch).mockResolvedValue(
+      Response.json({ message: '' }, { status: 400 }),
+    );
+
+    const { result } = renderHook(
+      () =>
+        useCreateBooking(undefined, {
+          onTransientError,
+          suppressStickyAnnounce: true,
+        }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.submit(requestBody);
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('error');
+    });
+    expect(result.current.errorMessage).toBe(BOOKING_CREATE_ERROR);
+    expect(result.current.announceError).toBe(true);
+    expect(onTransientError).not.toHaveBeenCalled();
+  });
+
+  it('treats AbortError as idle without a transient notification', async () => {
+    const onTransientError = vi.fn();
+    vi.mocked(fetch).mockRejectedValue(
+      new DOMException('Aborted', 'AbortError'),
+    );
+
+    const { result } = renderHook(
+      () =>
+        useCreateBooking(undefined, {
+          onTransientError,
+          suppressStickyAnnounce: true,
+        }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.submit(requestBody);
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('idle');
+    });
+    expect(result.current.errorMessage).toBeNull();
+    expect(result.current.announceError).toBe(false);
+    expect(onTransientError).not.toHaveBeenCalled();
   });
 
   it('ignores a second submit while the first is in flight', async () => {

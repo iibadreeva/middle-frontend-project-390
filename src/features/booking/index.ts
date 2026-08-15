@@ -15,4 +15,9 @@ export {
   type BookingLookupValues,
 } from './BookingLookupForm/BookingLookupForm';
 export { useCreateBooking } from './useCreateBooking';
+export type { UseCreateBookingOptions } from './useCreateBooking';
+export {
+  BOOKING_CREATE_TOAST_TAG,
+  useCreateBookingWithToast,
+} from './useCreateBookingWithToast';
 export { useFlight } from './useFlight';

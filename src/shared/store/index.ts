@@ -5,6 +5,7 @@ export {
   api,
   getQueryErrorMessage,
   getQueryErrorStatus,
+  isAbortError,
   runQuery,
   toQueryError,
   type ApiQueryError,

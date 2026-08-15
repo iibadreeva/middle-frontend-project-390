@@ -237,10 +237,29 @@ describe('BookingForm', () => {
     expect(screen.getByTestId('booking-error')).toHaveTextContent(
       'Серверная ошибка',
     );
+    expect(screen.getByTestId('booking-error')).toHaveAttribute(
+      'role',
+      'alert',
+    );
 
     await user.type(screen.getByTestId('contact-email'), 'a');
 
     expect(onDismissExternalError).toHaveBeenCalled();
+  });
+
+  it('can render an external error without a live region', () => {
+    render(
+      <BookingForm
+        onSubmit={vi.fn()}
+        externalError="Серверная ошибка"
+        announceExternalError={false}
+      />,
+    );
+
+    expect(screen.getByTestId('booking-error')).toHaveTextContent(
+      'Серверная ошибка',
+    );
+    expect(screen.getByTestId('booking-error')).not.toHaveAttribute('role');
   });
 
   it('disables add-passenger while submitting', () => {

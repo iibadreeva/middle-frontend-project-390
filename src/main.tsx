@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { App } from './app/App';
 import { registerEntityApis } from './app/registerEntityApis';
 import { store } from '@shared/store';
+import { ToastProvider } from '@shared/ui/Toast';
 import './styles/global.css';
 
 registerEntityApis();
@@ -18,9 +19,11 @@ if (!root) {
 createRoot(root).render(
   <StrictMode>
     <Provider store={store}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <ToastProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ToastProvider>
     </Provider>
   </StrictMode>,
 );

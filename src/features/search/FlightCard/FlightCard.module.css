@@ -105,6 +105,59 @@
   outline-offset: 2px;
 }
 
+.bone {
+  display: block;
+  border-radius: var(--radius-sm);
+  background: var(--color-border);
+  animation: flightCardPulse 1.2s ease-in-out infinite;
+}
+
+.boneAirline {
+  height: 1rem;
+  width: 55%;
+}
+
+.boneRoute {
+  height: 0.9375rem;
+  width: 70%;
+}
+
+.boneSchedule {
+  height: 0.875rem;
+  width: 85%;
+}
+
+.boneSeats {
+  height: 0.875rem;
+  width: 45%;
+}
+
+.bonePrice {
+  height: 1.125rem;
+  width: 5.5rem;
+}
+
+.boneBook {
+  height: 2.25rem;
+  width: 8rem;
+}
+
+@keyframes flightCardPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bone {
+    animation: none;
+  }
+}
+
 @media (max-width: 640px) {
   .card {
     grid-template-columns: 1fr;
