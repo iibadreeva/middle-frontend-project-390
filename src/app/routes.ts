@@ -3,6 +3,8 @@
 const routeSegments = {
   flights: 'flights',
   booking: 'booking',
+  lookup: 'lookup',
+  /** Устаревший сегмент — только для редиректа на `/lookup`. */
   bookings: 'bookings',
 } as const;
 
@@ -11,36 +13,37 @@ export const routePaths = {
   home: '/',
   flights: routeSegments.flights,
   booking: `${routeSegments.booking}/:flightId`,
-  bookings: routeSegments.bookings,
-  bookingView: `${routeSegments.bookings}/:code`,
+  lookup: routeSegments.lookup,
+  bookingsLegacy: routeSegments.bookings,
+  bookingViewLegacy: `${routeSegments.bookings}/:code`,
 } as const;
 
 /** Absolute href для Link / Navigate / NavLink. */
 export const homeHref = routePaths.home;
 
-export const bookingsHref = `/${routeSegments.bookings}`;
-
-export function bookingHref(flightId: string): string {
-  return `/${routeSegments.booking}/${encodeURIComponent(flightId)}`;
-}
-
-export type BookingViewHrefOptions = {
-  /**
-   * Если свойство передано (в т.ч. `''`) — в URL попадает `?lastName=…`.
-   * Если свойства нет — query не добавляется.
-   * Для success-экрана передавайте только непустую фамилию.
-   */
+export type LookupHrefOptions = {
+  code?: string;
   lastName?: string;
 };
 
-export function bookingViewHref(
-  code: string,
-  options?: BookingViewHrefOptions,
-): string {
-  const viewSearch = new URLSearchParams();
-  if (options && 'lastName' in options) {
-    viewSearch.set('lastName', options.lastName ?? '');
+/** `/lookup` или `/lookup?code=…&lastName=…` при переданных полях. */
+export function lookupHref(options?: LookupHrefOptions): string {
+  const base = `/${routeSegments.lookup}`;
+  if (!options) {
+    return base;
   }
-  const query = viewSearch.size > 0 ? `?${viewSearch}` : '';
-  return `/${routeSegments.bookings}/${encodeURIComponent(code)}${query}`;
+
+  const search = new URLSearchParams();
+  if (typeof options.code === 'string') {
+    search.set('code', options.code);
+  }
+  if (typeof options.lastName === 'string') {
+    search.set('lastName', options.lastName);
+  }
+  const query = search.size > 0 ? `?${search}` : '';
+  return `${base}${query}`;
+}
+
+export function bookingHref(flightId: string): string {
+  return `/${routeSegments.booking}/${encodeURIComponent(flightId)}`;
 }

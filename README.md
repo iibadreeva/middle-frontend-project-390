@@ -13,7 +13,7 @@ Feature-based раскладка с жёсткими границами (ESLint)
 - `features/*` — UI и доменная логика фич (список подхватывается из каталога при загрузке ESLint-конфига; после добавления новой фичи перезапустите ESLint / IDE); снаружи только через `@features/<name>` (`index.ts`)
 - `shared/` — общее UI, хуки, lib, api, store, test-хелперы; снаружи через alias `@shared/*` (публичного barrel нет — deep-import осознан)
 
-Фичи не импортируют друг друга (relative резолвится в реальный путь, без ложных срабатываний на локальные `../<name>`) и не зависят от `app`; внутри фичи запрещён self-import через `@features/<name>`. `shared` (включая `shared/test`) не зависит от фич и `app`. Deep-import фич запрещён в `app`, `main` и `tests`. Production-код не импортирует `shared/test` / `@shared/test`. Маршруты (`bookingHref` / `bookingViewHref` в `app/routes.ts`) задаёт только `app` и передаёт в фичи через props (`getBookHref` / `bookHref`, `viewBookingHref`). У `bookingViewHref` query `lastName` появляется только если в options передано свойство `lastName` (в т.ч. пустая строка для lookup); без свойства query нет.
+Фичи не импортируют друг друга (relative резолвится в реальный путь, без ложных срабатываний на локальные `../<name>`) и не зависят от `app`; внутри фичи запрещён self-import через `@features/<name>`. `shared` (включая `shared/test`) не зависит от фич и `app`. Deep-import фич запрещён в `app`, `main` и `tests`. Production-код не импортирует `shared/test` / `@shared/test`. Маршруты (`bookingHref` / `lookupHref` в `app/routes.ts`) задаёт только `app` и передаёт в фичи через props (`getBookHref` / `bookHref`, `viewBookingHref`). `lookupHref()` → `/lookup`; `lookupHref({ code, lastName })` добавляет query для автозагрузки брони. Устаревшие `/bookings` и `/bookings/:code` редиректят на `/lookup`.
 
 ### Запуск
 
@@ -80,6 +80,14 @@ Browser-тесты поиска (`tests/flight-search.spec.ts`) подменяю
 Browser-тесты оформления (`tests/booking.spec.ts`) тоже мокают API через `page.route`.
 
 Ключевые `data-testid` брони: `booking-form`, `booking-flight`, `booking-flight-total-price`, `booking-flight-error`, `booking-flight-retry`, `contact-email`, `contact-phone`, `contact-email-error`, `contact-phone-error`, `passenger-<i>-firstName` / `-lastName` / `-dob` / `-document` (+ `-*-error`), `add-passenger`, `remove-passenger-<i>`, `booking-submit`, `booking-form-total-price`, `booking-success`, `booking-code`, `booking-view-link`, `booking-error` (внешние/серверные), `booking-seats-warning`, `flight-not-found`.
+
+### Просмотр брони
+
+Экран «Мои брони» (`/lookup`, ссылка `nav-lookup`): форма поиска по коду брони и фамилии. По submit (и при открытии `/lookup?code=…&lastName=…`) уходит `GET /api/bookings/{code}?lastName=…`. Успех — карточка с рейсом, пассажирами, статусом (`data-status` = `confirmed` / `cancelled`) и итогом. 404 (неверный код или фамилия) → `booking-not-found`. Сетевые/серверные ошибки → `booking-lookup-error` + toast и кнопка `booking-lookup-retry` (повторный submit с теми же данными тоже делает refetch). Для `confirmed` доступна отмена через `POST /api/bookings/{code}/cancel` (`cancel-booking`, с confirm); после успеха статус становится `cancelled`. Ошибка отмены → `booking-cancel-error` + toast. Старые URL `/bookings` и `/bookings/:code` редиректят на `/lookup` (query `lastName` сохраняется).
+
+Browser-тесты: `tests/lookup.spec.ts`.
+
+Ключевые `data-testid` lookup: `nav-lookup`, `booking-lookup-form`, `lookup-code`, `lookup-lastName`, `lookup-submit`, `lookup-form-error`, `booking-details`, `booking-code`, `booking-status`, `cancel-booking`, `booking-not-found`, `booking-lookup-error`, `booking-lookup-retry`, `booking-cancel-error`.
 
 ### CI
 

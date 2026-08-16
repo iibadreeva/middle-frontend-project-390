@@ -112,6 +112,80 @@ export async function mockCreateBookingApi(
   });
 }
 
+export async function mockGetBookingApi(
+  page: Page,
+  handler: (args: {
+    code: string;
+    lastName: string;
+  }) => { status: number; body: unknown },
+) {
+  await page.route(/\/api\/bookings\/[^/]+(?:\?|$)/, async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fulfill({
+        status: 405,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 'method_not_allowed' }),
+      });
+      return;
+    }
+
+    const url = new URL(route.request().url());
+    const segments = url.pathname.split('/');
+    const code = decodeURIComponent(segments[segments.length - 1] ?? '');
+    const lastName = url.searchParams.get('lastName') ?? '';
+    const response = handler({ code, lastName });
+    await route.fulfill({
+      status: response.status,
+      contentType: 'application/json',
+      body: JSON.stringify(response.body),
+    });
+  });
+}
+
+export async function mockCancelBookingApi(
+  page: Page,
+  handler: (args: {
+    code: string;
+    lastName: string;
+    body: unknown;
+  }) => { status: number; body: unknown },
+) {
+  await page.route(/\/api\/bookings\/[^/]+\/cancel$/, async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.fulfill({
+        status: 405,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 'method_not_allowed' }),
+      });
+      return;
+    }
+
+    const url = new URL(route.request().url());
+    const segments = url.pathname.split('/');
+    const code = decodeURIComponent(segments[segments.length - 2] ?? '');
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(route.request().postData() ?? 'null');
+    } catch {
+      parsed = null;
+    }
+    const lastName =
+      parsed &&
+      typeof parsed === 'object' &&
+      'lastName' in parsed &&
+      typeof parsed.lastName === 'string'
+        ? parsed.lastName
+        : '';
+
+    const response = handler({ code, lastName, body: parsed });
+    await route.fulfill({
+      status: response.status,
+      contentType: 'application/json',
+      body: JSON.stringify(response.body),
+    });
+  });
+}
+
 export function normalizeSpaces(value: string): string {
   return value.replace(/\u00a0|\u202f/g, ' ');
 }

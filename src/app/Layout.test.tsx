@@ -45,7 +45,7 @@ describe('Layout error boundary', () => {
             <Route path={routePaths.home} element={<Layout />}>
               <Route index element={<SafePage />} />
               <Route path="boom" element={<BoomPage />} />
-              <Route path={routePaths.bookings} element={<SafePage />} />
+              <Route path={routePaths.lookup} element={<SafePage />} />
             </Route>
           </Routes>
         </MemoryRouter>
@@ -56,7 +56,7 @@ describe('Layout error boundary', () => {
     expect(screen.getByTestId('error-boundary')).toBeInTheDocument();
     expect(screen.queryByTestId('safe-page')).not.toBeInTheDocument();
 
-    await user.click(screen.getByTestId('nav-bookings'));
+    await user.click(screen.getByTestId('nav-lookup'));
 
     expect(screen.getByTestId('app-header')).toBeInTheDocument();
     expect(screen.queryByTestId('error-boundary')).not.toBeInTheDocument();

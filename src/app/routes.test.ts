@@ -1,19 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
   bookingHref,
-  bookingsHref,
-  bookingViewHref,
   homeHref,
+  lookupHref,
   routePaths,
 } from './routes';
 
 describe('app routes', () => {
   it('keeps route path patterns derived from the same segments as hrefs', () => {
     expect(routePaths.home).toBe(homeHref);
-    expect(routePaths.bookings).toBe(bookingsHref.slice(1));
+    expect(routePaths.lookup).toBe('lookup');
     expect(routePaths.booking).toBe('booking/:flightId');
-    expect(routePaths.bookingView).toBe('bookings/:code');
-    expect(bookingsHref).toBe('/bookings');
+    expect(lookupHref()).toBe('/lookup');
   });
 
   it('builds booking href', () => {
@@ -26,25 +24,30 @@ describe('app routes', () => {
     );
   });
 
-  it('omits query when lastName option is absent', () => {
-    expect(bookingViewHref('AB12CD')).toBe('/bookings/AB12CD');
+  it('omits query when lookup options are absent', () => {
+    expect(lookupHref()).toBe('/lookup');
   });
 
-  it('includes lastName query even when empty (lookup)', () => {
-    expect(bookingViewHref('AB12CD', { lastName: '' })).toBe(
-      '/bookings/AB12CD?lastName=',
+  it('includes code and lastName query for lookup', () => {
+    expect(lookupHref({ code: 'AB12CD', lastName: 'Петров' })).toBe(
+      `/lookup?code=AB12CD&lastName=${encodeURIComponent('Петров')}`,
     );
   });
 
-  it('includes non-empty lastName (success)', () => {
-    expect(bookingViewHref('AB12CD', { lastName: 'Петров' })).toBe(
-      `/bookings/AB12CD?lastName=${encodeURIComponent('Петров')}`,
+  it('includes empty lastName when explicitly passed', () => {
+    expect(lookupHref({ code: 'AB12CD', lastName: '' })).toBe(
+      '/lookup?code=AB12CD&lastName=',
     );
   });
 
   it('encodes code and lastName', () => {
-    expect(bookingViewHref('A/B', { lastName: 'Петров' })).toBe(
-      `/bookings/${encodeURIComponent('A/B')}?lastName=${encodeURIComponent('Петров')}`,
+    expect(lookupHref({ code: 'A/B', lastName: 'Петров' })).toBe(
+      `/lookup?code=${encodeURIComponent('A/B')}&lastName=${encodeURIComponent('Петров')}`,
     );
+  });
+
+  it('keeps legacy bookings path patterns for redirects', () => {
+    expect(routePaths.bookingsLegacy).toBe('bookings');
+    expect(routePaths.bookingViewLegacy).toBe('bookings/:code');
   });
 });

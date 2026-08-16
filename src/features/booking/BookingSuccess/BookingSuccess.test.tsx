@@ -22,7 +22,7 @@ describe('BookingSuccess', () => {
       <MemoryRouter>
         <BookingSuccess
           booking={booking}
-          viewBookingHref={`/bookings/AB12CD?lastName=${encodeURIComponent('Петров')}`}
+          viewBookingHref={`/lookup?code=AB12CD&lastName=${encodeURIComponent('Петров')}`}
         />
       </MemoryRouter>,
     );
@@ -30,7 +30,7 @@ describe('BookingSuccess', () => {
     const link = screen.getByTestId('booking-view-link');
     expect(link).toHaveAttribute(
       'href',
-      `/bookings/AB12CD?lastName=${encodeURIComponent('Петров')}`,
+      `/lookup?code=AB12CD&lastName=${encodeURIComponent('Петров')}`,
     );
     expect(link).toHaveTextContent('Перейти к брони');
   });

@@ -11,7 +11,7 @@ import {
 } from '@features/booking';
 import type { Flight } from '@entities/flight';
 import { FLIGHT_LOAD_ERROR, FLIGHT_NOT_FOUND } from '@shared/lib/messages';
-import { bookingViewHref } from '../routes';
+import { lookupHref } from '../routes';
 import styles from './Page.module.css';
 
 export function BookingPage() {
@@ -60,8 +60,8 @@ export function BookingPage() {
           booking={booking}
           viewBookingHref={
             lastName
-              ? bookingViewHref(booking.code, { lastName })
-              : bookingViewHref(booking.code)
+              ? lookupHref({ code: booking.code, lastName })
+              : lookupHref({ code: booking.code })
           }
         />
       </section>

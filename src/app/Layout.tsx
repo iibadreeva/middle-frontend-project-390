@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useGetCitiesQuery } from '@entities/city';
 import { ErrorBoundary } from '@shared/ui/ErrorBoundary';
-import { bookingsHref, homeHref } from './routes';
+import { homeHref, lookupHref } from './routes';
 import styles from './Layout.module.css';
 
 export function Layout() {
@@ -31,11 +31,11 @@ export function Layout() {
             Поиск рейсов
           </NavLink>
           <NavLink
-            to={bookingsHref}
+            to={lookupHref()}
             className={({ isActive }) =>
               isActive ? `${styles.link} ${styles.active}` : styles.link
             }
-            data-testid="nav-bookings"
+            data-testid="nav-lookup"
           >
             Мои брони
           </NavLink>

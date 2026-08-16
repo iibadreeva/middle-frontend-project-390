@@ -75,6 +75,11 @@
   background: #fecaca;
 }
 
+.cancel:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .cancel:focus-visible {
   outline: 2px solid var(--color-danger);
   outline-offset: 2px;

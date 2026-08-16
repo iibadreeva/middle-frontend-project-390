@@ -52,6 +52,13 @@
   background: var(--color-primary-hover);
 }
 
+.error {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-danger);
+}
+
 @media (max-width: 640px) {
   .form {
     grid-template-columns: 1fr;

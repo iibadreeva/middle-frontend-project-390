@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "test": "node scripts/run-tests.mjs",
     "mock": "npx @stoplight/prism-cli mock contract/openapi.yaml",
+    "server": "npx frontend-flight-booking-server start",
     "test:browsers": "playwright install --with-deps chromium"
   },
   "dependencies": {

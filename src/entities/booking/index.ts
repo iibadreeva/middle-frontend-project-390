@@ -17,5 +17,8 @@ export {
   cancelBooking,
   createBooking,
   getBooking,
+  useCancelBookingMutation,
   useCreateBookingMutation,
+  useGetBookingQuery,
+  type BookingLookupArgs,
 } from './api';

@@ -96,6 +96,6 @@ export async function runQuery<T>(
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fakeBaseQuery<ApiQueryError>(),
-  tagTypes: ['City', 'Flight'],
+  tagTypes: ['City', 'Flight', 'Booking'],
   endpoints: () => ({}),
 });

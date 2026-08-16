@@ -12,6 +12,7 @@ export type BookingDetailsData = {
 type BookingDetailsProps = {
   booking: BookingDetailsData;
   onCancel?: () => void;
+  cancelling?: boolean;
 };
 
 const statusLabels: Record<BookingStatus, string> = {
@@ -19,7 +20,11 @@ const statusLabels: Record<BookingStatus, string> = {
   cancelled: 'Отменена',
 };
 
-export function BookingDetails({ booking, onCancel }: BookingDetailsProps) {
+export function BookingDetails({
+  booking,
+  onCancel,
+  cancelling = false,
+}: BookingDetailsProps) {
   const badgeClass =
     booking.status === 'cancelled'
       ? `${styles.badge} ${styles.badgeCancelled}`
@@ -56,10 +61,11 @@ export function BookingDetails({ booking, onCancel }: BookingDetailsProps) {
         <button
           className={styles.cancel}
           type="button"
-          data-testid="booking-cancel-button"
+          data-testid="cancel-booking"
+          disabled={cancelling}
           onClick={onCancel}
         >
-          Отменить бронь
+          {cancelling ? 'Отмена…' : 'Отменить бронь'}
         </button>
       ) : null}
     </article>

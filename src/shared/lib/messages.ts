@@ -42,3 +42,15 @@ export const BOOKING_CREATE_ERROR =
 /** Sticky-якорь у формы, когда полный текст уже объявил toast. */
 export const BOOKING_CREATE_ERROR_HINT =
   'Не удалось оформить бронь. Подробности — в уведомлении.';
+
+export const BOOKING_NOT_FOUND = 'Бронь не найдена';
+
+export const BOOKING_LOOKUP_ERROR = 'Не удалось загрузить бронь';
+
+export const BOOKING_CANCEL_ERROR =
+  'Не удалось отменить бронь. Попробуйте ещё раз.';
+
+export const BOOKING_CANCEL_CONFIRM = 'Отменить эту бронь?';
+
+export const BOOKING_LOOKUP_REQUIRED_ERROR =
+  'Укажите код бронирования и фамилию';

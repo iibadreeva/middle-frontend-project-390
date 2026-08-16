@@ -14,6 +14,9 @@ export {
   BookingLookupForm,
   type BookingLookupValues,
 } from './BookingLookupForm/BookingLookupForm';
+export { toBookingDetailsData } from './toBookingDetailsData';
+export { useBookingLookup } from './useBookingLookup';
+export type { BookingLookupStatus } from './useBookingLookup';
 export { useCreateBooking } from './useCreateBooking';
 export type { UseCreateBookingOptions } from './useCreateBooking';
 export {
