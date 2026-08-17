@@ -98,6 +98,7 @@ describe('LookupPage', () => {
       BOOKING_NOT_FOUND,
     );
     expect(screen.queryByTestId('booking-details')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('toast-item')).not.toBeInTheDocument();
   });
 
   it('submits the form and navigates to query-backed lookup', async () => {

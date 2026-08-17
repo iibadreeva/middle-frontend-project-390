@@ -4,6 +4,9 @@ export const FLIGHTS_SEARCH_ERROR =
 export const CITIES_FALLBACK_NOTICE =
   'Не удалось загрузить полный список городов. Показан запасной набор направлений.';
 
+/** Toast при ошибке /api/cities: без утверждения, что fallback уже показан. */
+export const CITIES_LOAD_ERROR = 'Не удалось загрузить полный список городов.';
+
 export const SEARCH_SAME_CITIES_ERROR =
   'Город вылета и город прилёта должны отличаться';
 
@@ -19,6 +22,9 @@ export const SEARCH_PASSENGERS_ERROR =
 export const FLIGHT_NOT_FOUND = 'Рейс не найден';
 
 export const FLIGHT_LOAD_ERROR = 'Не удалось загрузить рейс';
+
+export const REQUEST_FAILED =
+  'Не удалось выполнить запрос. Попробуйте ещё раз.';
 
 export const BOOKING_REQUIRED_ERROR = 'Заполните все обязательные поля';
 

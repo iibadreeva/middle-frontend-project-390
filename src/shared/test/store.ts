@@ -3,8 +3,7 @@
  * «entities → shared»: здесь сидят фикстуры доменных типов и inject endpoints
  * для тестов. Production `shared` entities не импортирует (см. eslint).
  *
- * Side-effect импорты вызывают injectEndpoints (аналог app/registerEntityApis;
- * shared/test не может импортировать app).
+ * Side-effect импорты вызывают injectEndpoints при загрузке модуля.
  */
 import '@entities/booking';
 import '@entities/flight';

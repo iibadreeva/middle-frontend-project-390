@@ -7,6 +7,7 @@ import {
   ToastProvider,
   useToast,
 } from './ToastProvider';
+import { toast } from './toast';
 
 describe('ToastProvider', () => {
   afterEach(() => {
@@ -356,5 +357,72 @@ describe('ToastProvider', () => {
 
   it('throws when useToast is used outside the provider', () => {
     expect(() => renderHook(() => useToast())).toThrow(/ToastProvider/);
+  });
+
+  it('renders an error emitted before the provider mounted', () => {
+    toast.error('Сеть недоступна', { tag: 'search' });
+
+    render(
+      <ToastProvider>
+        <div />
+      </ToastProvider>,
+    );
+
+    const item = screen.getByTestId('toast-item');
+    expect(item).toHaveTextContent('Сеть недоступна');
+    expect(item).toHaveAttribute('data-toast-tag', 'search');
+  });
+
+  it('renders an error from the imperative toast bus', () => {
+    render(
+      <ToastProvider>
+        <div />
+      </ToastProvider>,
+    );
+
+    act(() => {
+      toast.error('Сеть недоступна', { tag: 'search' });
+    });
+
+    const item = screen.getByTestId('toast-item');
+    expect(item).toHaveTextContent('Сеть недоступна');
+    expect(item).toHaveAttribute('data-toast-tag', 'search');
+  });
+
+  it('dismisses a tagged toast from the imperative bus', () => {
+    render(
+      <ToastProvider>
+        <div />
+      </ToastProvider>,
+    );
+
+    act(() => {
+      toast.error('booking', { tag: 'booking' });
+      toast.error('search', { tag: 'search' });
+    });
+    expect(screen.getAllByTestId('toast-item')).toHaveLength(2);
+
+    act(() => {
+      toast.dismiss('booking');
+    });
+
+    expect(screen.getAllByTestId('toast-item')).toHaveLength(1);
+    expect(screen.getByTestId('toast-item')).toHaveTextContent('search');
+  });
+
+  it('does not apply bus events after unmount', () => {
+    const { unmount } = render(
+      <ToastProvider>
+        <div />
+      </ToastProvider>,
+    );
+
+    unmount();
+
+    expect(() => {
+      act(() => {
+        toast.error('after unmount');
+      });
+    }).not.toThrow();
   });
 });

@@ -5,7 +5,7 @@ import type { CreateBookingRequest } from '@entities/booking';
 import { BOOKING_CREATE_ERROR_HINT } from '@shared/lib/messages';
 import { TestProviders } from '@shared/test/providers';
 import { useToast } from '@shared/ui/Toast';
-import { useCreateBookingWithToast } from './useCreateBookingWithToast';
+import { BOOKING_CREATE_TOAST_TAG, useCreateBookingWithToast } from './useCreateBookingWithToast';
 
 const requestBody: CreateBookingRequest = {
   flightId: 'fl_1',
@@ -56,7 +56,7 @@ describe('useCreateBookingWithToast', () => {
     expect(result.current.announceError).toBe(false);
     expect(await screen.findByTestId('toast-item')).toHaveAttribute(
       'data-toast-tag',
-      'booking-create',
+      BOOKING_CREATE_TOAST_TAG,
     );
   });
 

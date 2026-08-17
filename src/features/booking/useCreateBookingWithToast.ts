@@ -1,25 +1,16 @@
 import { useCallback } from 'react';
-import { useToast } from '@shared/ui/Toast';
+import { rtkQueryErrorTag } from '@shared/store';
+import { toast } from '@shared/ui/Toast/toast';
 import { useCreateBooking } from './useCreateBooking';
 
 /** Tag toast'ов создания брони — dismiss не трогает чужие уведомления. */
-export const BOOKING_CREATE_TOAST_TAG = 'booking-create';
+export const BOOKING_CREATE_TOAST_TAG = rtkQueryErrorTag('createBooking');
 
 /**
- * Бронирование с toast для transient-ошибок.
- * Всегда ставит пару `onTransientError` + `suppressStickyAnnounce`,
- * чтобы не получить двойной live-region announce.
+ * Бронирование со sticky-hint: полный текст объявляет глобальный toast.
+ * `suppressStickyAnnounce` глушит live-region, чтобы не дублировать attention.
  */
 export function useCreateBookingWithToast(scopeKey?: string) {
-  const toast = useToast();
-
-  const onTransientError = useCallback(
-    (message: string) => {
-      toast.error(message, { tag: BOOKING_CREATE_TOAST_TAG });
-    },
-    [toast],
-  );
-
   const {
     status,
     booking,
@@ -28,18 +19,17 @@ export function useCreateBookingWithToast(scopeKey?: string) {
     submit,
     clearError: clearBookingError,
   } = useCreateBooking(scopeKey, {
-    onTransientError,
     suppressStickyAnnounce: true,
   });
 
   const clearError = useCallback(() => {
     clearBookingError();
     toast.dismiss(BOOKING_CREATE_TOAST_TAG);
-  }, [clearBookingError, toast]);
+  }, [clearBookingError]);
 
   const dismissTransientToast = useCallback(() => {
     toast.dismiss(BOOKING_CREATE_TOAST_TAG);
-  }, [toast]);
+  }, []);
 
   return {
     status,

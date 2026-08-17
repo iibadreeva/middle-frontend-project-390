@@ -88,7 +88,8 @@ export async function runQuery<T>(
 }
 
 /**
- * Базовый API без доменных endpoint'ов — их inject'ят entities.
+ * Базовый API без доменных endpoint'ов — их inject'ят entities
+ * при импорте entity-модуля api (хуки или объект API).
  * `tagTypes` объявляются здесь: RTK Query требует полный список на createApi;
  * новые теги (например Booking) добавляйте в этот массив, затем используйте
  * в injectEndpoints сущности.

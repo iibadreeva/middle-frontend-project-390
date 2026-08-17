@@ -32,14 +32,11 @@ describe('FlightResults', () => {
     );
   });
 
-  it('marks error state as alert', () => {
+  it('does not mark error state as alert — the global toast announces 5xx', () => {
     render(
       <FlightResults status="error" errorMessage="Не удалось выполнить поиск" />,
     );
-    expect(screen.getByTestId('flights-error')).toHaveAttribute(
-      'role',
-      'alert',
-    );
+    expect(screen.getByTestId('flights-error')).not.toHaveAttribute('role');
   });
 
   it('renders flight cards without a live region role', () => {

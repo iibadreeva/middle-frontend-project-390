@@ -7,7 +7,12 @@ import {
   useNavigate,
 } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { BOOKING_CREATE_ERROR, BOOKING_CREATE_ERROR_HINT, FLIGHT_NOT_FOUND } from '@shared/lib/messages';
+import {
+  BOOKING_CREATE_ERROR,
+  BOOKING_CREATE_ERROR_HINT,
+  FLIGHT_LOAD_ERROR,
+  FLIGHT_NOT_FOUND,
+} from '@shared/lib/messages';
 import { stubBookingApiFetch } from '@shared/test/apiFetch';
 import { fixtureBooking, fixtureCities, fixtureFlights } from '@shared/test/fixtures';
 import { TestProviders } from '@shared/test/providers';
@@ -75,6 +80,7 @@ describe('BookingPage', () => {
       );
     });
     expect(screen.queryByTestId('booking-form')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('toast-item')).not.toBeInTheDocument();
   });
 
   it('shows the flight and enables submit after load', async () => {
@@ -310,6 +316,13 @@ describe('BookingPage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('booking-flight-error')).toBeInTheDocument();
     });
+    expect(await screen.findByTestId('toast-item')).toHaveTextContent(
+      FLIGHT_LOAD_ERROR,
+    );
+    expect(screen.getByTestId('booking-flight-error')).not.toHaveAttribute(
+      'role',
+      'alert',
+    );
 
     await user.click(screen.getByTestId('booking-flight-retry'));
 

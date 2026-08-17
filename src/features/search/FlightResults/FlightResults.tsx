@@ -106,7 +106,6 @@ export function FlightResults(props: FlightResultsProps) {
       <p
         className={`${styles.message} ${styles.error}`}
         data-testid="flights-error"
-        role="alert"
       >
         {props.errorMessage}
       </p>

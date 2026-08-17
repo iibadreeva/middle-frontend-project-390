@@ -81,11 +81,7 @@ export function BookingPage() {
   if (flightStatus === 'error') {
     return (
       <section className={styles.page} data-testid="booking-page">
-        <p
-          className={styles.empty}
-          data-testid="booking-flight-error"
-          role="alert"
-        >
+        <p className={styles.empty} data-testid="booking-flight-error">
           {FLIGHT_LOAD_ERROR}
         </p>
         <button

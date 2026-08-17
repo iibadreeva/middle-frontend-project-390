@@ -19,17 +19,7 @@ export type CreateBookingStatus = 'idle' | 'submitting' | 'success' | 'error';
 
 export type UseCreateBookingOptions = {
   /**
-   * Attention-канал для сети / 5xx и т.п. (например `toast.error`).
-   * Validation (400) сюда не вызывается.
-   * Сам по себе колбэк не глушит live-region sticky-ошибки — для этого
-   * нужен явный `suppressStickyAnnounce: true`.
-   * Предпочтительнее `useCreateBookingWithToast` — он задаёт оба флага корректно.
-   */
-  onTransientError?: (message: string) => void;
-  /**
-   * Sticky-ошибка без live-region: attention UI уже объявил сообщение.
-   * Не выводите из факта наличия `onTransientError` (no-op не должен глушить SR).
-   * Вместе с toast всегда передавайте оба: onTransientError + suppressStickyAnnounce.
+   * Sticky без live-region: полный текст объявляет глобальный RTK toast.
    */
   suppressStickyAnnounce?: boolean;
 };
@@ -58,8 +48,6 @@ export function useCreateBooking(
   submit: (body: CreateBookingRequest) => void;
   clearError: () => void;
 } {
-  const onTransientError = options?.onTransientError;
-  const onTransientErrorRef = useLatestRef(onTransientError);
   const suppressStickyAnnounce = options?.suppressStickyAnnounce === true;
 
   const fixedCacheKey = scopeKey ?? '';
@@ -102,14 +90,8 @@ export function useCreateBooking(
 
       void promise
         .unwrap()
-        .catch((error: unknown) => {
-          if (promiseRef.current !== promise) {
-            return;
-          }
-          if (isAbortError(error) || isValidationError(error)) {
-            return;
-          }
-          onTransientErrorRef.current?.(BOOKING_CREATE_ERROR);
+        .catch(() => {
+          // unwrap() reject: abort / 400 / 5xx. Toast — в error middleware.
         })
         .finally(() => {
           if (promiseRef.current === promise) {
@@ -118,7 +100,7 @@ export function useCreateBooking(
           }
         });
     },
-    [createBooking, onTransientErrorRef],
+    [createBooking],
   );
 
   let status: CreateBookingStatus = 'idle';

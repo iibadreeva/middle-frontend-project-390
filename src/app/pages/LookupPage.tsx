@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   BookingDetails,
@@ -12,15 +11,11 @@ import {
   BOOKING_LOOKUP_ERROR,
   BOOKING_NOT_FOUND,
 } from '@shared/lib/messages';
-import { useToast } from '@shared/ui/Toast';
 import { lookupHref } from '../routes';
 import styles from './Page.module.css';
 
-const LOOKUP_TOAST_TAG = 'booking-lookup';
-
 export function LookupPage() {
   const navigate = useNavigate();
-  const toast = useToast();
   const [params] = useSearchParams();
 
   const code = params.get('code')?.trim() ?? '';
@@ -30,18 +25,6 @@ export function LookupPage() {
 
   const { status, booking, cancel, cancelling, cancelError, reload } =
     useBookingLookup(lookupArgs);
-
-  useEffect(() => {
-    if (status === 'error') {
-      toast.error(BOOKING_LOOKUP_ERROR, { tag: LOOKUP_TOAST_TAG });
-    }
-  }, [status, toast]);
-
-  useEffect(() => {
-    if (cancelError) {
-      toast.error(BOOKING_CANCEL_ERROR, { tag: LOOKUP_TOAST_TAG });
-    }
-  }, [cancelError, toast]);
 
   function handleLookup(values: BookingLookupValues) {
     if (
@@ -53,7 +36,6 @@ export function LookupPage() {
       return;
     }
 
-    toast.dismiss(LOOKUP_TOAST_TAG);
     navigate(
       lookupHref({ code: values.code, lastName: values.lastName }),
     );

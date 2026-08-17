@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import styles from './Toast.module.css';
+import { toast as toastBus, type ToastErrorOptions } from './toast';
 
 export const TOAST_DURATION_MS = 5000;
 export const TOAST_MAX_VISIBLE = 3;
@@ -16,11 +17,6 @@ export const TOAST_MAX_VISIBLE = 3;
 type ToastItem = {
   id: number;
   message: string;
-  tag?: string;
-};
-
-type ToastErrorOptions = {
-  /** Группа уведомлений; повторный error с тем же tag заменяет предыдущий. */
   tag?: string;
 };
 
@@ -167,6 +163,23 @@ export function ToastProvider({ children }: ToastProviderProps) {
     () => ({ error, dismiss: dismissByTag, dismissAll }),
     [error, dismissByTag, dismissAll],
   );
+
+  useEffect(() => {
+    return toastBus.subscribe((event) => {
+      if (event.type === 'error') {
+        error(
+          event.message,
+          event.tag === undefined ? undefined : { tag: event.tag },
+        );
+        return;
+      }
+      if (event.type === 'dismiss') {
+        dismissByTag(event.tag);
+        return;
+      }
+      dismissAll();
+    });
+  }, [error, dismissByTag, dismissAll]);
 
   return (
     <ToastContext.Provider value={api}>
