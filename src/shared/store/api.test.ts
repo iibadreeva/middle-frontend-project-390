@@ -1,12 +1,25 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ApiError } from '../lib/errors';
+import { ApiError, ValidationError } from '../lib/errors';
+import * as reportErrorModule from '../lib/reportError';
 import { isAbortError, runQuery, toQueryError } from './api';
 
 describe('toQueryError', () => {
-  it('maps ApiError with status and message', () => {
+  it('maps ApiError with status, message, and name', () => {
     expect(toQueryError(new ApiError('bad request', 400))).toEqual({
       status: 400,
       message: 'bad request',
+      name: 'ApiError',
+    });
+  });
+
+  it('maps ValidationError with status, message, and name', () => {
+    const error = new ValidationError('Ответ сервера не соответствует схеме', [
+      { path: 'code', message: 'Required' },
+    ]);
+    expect(toQueryError(error)).toEqual({
+      status: 500,
+      message: 'Ответ сервера не соответствует схеме',
+      name: 'ValidationError',
     });
   });
 
@@ -77,7 +90,7 @@ describe('runQuery', () => {
         throw new ApiError('Cities unavailable', 500);
       }),
     ).resolves.toEqual({
-      error: { status: 500, message: 'Cities unavailable' },
+      error: { status: 500, message: 'Cities unavailable', name: 'ApiError' },
     });
 
     spy.mockRestore();
@@ -92,5 +105,35 @@ describe('runQuery', () => {
         throw abortError;
       }),
     ).rejects.toBe(abortError);
+  });
+
+  it('logs ValidationError via reportError', async () => {
+    const signal = new AbortController().signal;
+    const validationError = new ValidationError(
+      'Ответ сервера не соответствует схеме',
+      [{ path: 'code', message: 'Required' }],
+    );
+    const reportSpy = vi
+      .spyOn(reportErrorModule, 'reportError')
+      .mockImplementation(() => {});
+
+    await expect(
+      runQuery(signal, async () => {
+        throw validationError;
+      }),
+    ).resolves.toEqual({
+      error: {
+        status: 500,
+        message: 'Ответ сервера не соответствует схеме',
+        name: 'ValidationError',
+      },
+    });
+
+    expect(reportSpy).toHaveBeenCalledWith(
+      'API response validation failed',
+      validationError.issues,
+      validationError,
+    );
+    reportSpy.mockRestore();
   });
 });

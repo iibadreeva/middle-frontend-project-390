@@ -76,6 +76,20 @@ describe('useCities', () => {
     expect(result.current.notice).toBe(CITIES_FALLBACK_NOTICE);
   });
 
+  it('keeps fallback cities and sets notice when cities API returns invalid JSON', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      Response.json([{ code: 'MOW' }]),
+    );
+
+    const { result } = renderHook(() => useCities(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.notice).toBe(CITIES_FALLBACK_NOTICE);
+    });
+    expect(result.current.cities).toEqual(FALLBACK_CITIES);
+    expect(result.current.ready).toBe(true);
+  });
+
   it('stays ready with notice while a refetch after error is in flight', async () => {
     let calls = 0;
     let releaseRefetch: (value: Response) => void = () => {};

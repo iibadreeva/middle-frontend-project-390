@@ -115,6 +115,36 @@ describe('rtkQueryErrorMiddleware', () => {
     expect(error).not.toHaveBeenCalled();
   });
 
+  it('toasts ValidationError like other 5xx errors', () => {
+    const error = vi.spyOn(toast, 'error');
+
+    run(
+      rejectedAction('getFlights', {
+        status: 500,
+        message: 'Ответ сервера не соответствует схеме',
+        name: 'ValidationError',
+      }),
+    );
+
+    expect(error).toHaveBeenCalledWith(FLIGHTS_SEARCH_ERROR, {
+      tag: rtkQueryErrorTag('getFlights'),
+    });
+  });
+
+  it('does not toast getCities ValidationError', () => {
+    const error = vi.spyOn(toast, 'error');
+
+    run(
+      rejectedAction('getCities', {
+        status: 500,
+        message: 'Ответ сервера не соответствует схеме',
+        name: 'ValidationError',
+      }),
+    );
+
+    expect(error).not.toHaveBeenCalled();
+  });
+
   it('does not toast HTTP 4xx errors', () => {
     const error = vi.spyOn(toast, 'error');
 

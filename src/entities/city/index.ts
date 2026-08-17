@@ -1,4 +1,5 @@
 export type { City } from './model/types';
+export { CitiesResponseSchema, CitySchema } from './model/schemas';
 export {
   FALLBACK_CITIES,
   FALLBACK_DESTINATION,

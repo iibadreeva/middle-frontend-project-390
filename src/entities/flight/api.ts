@@ -1,6 +1,7 @@
 import { api, runQuery } from '@shared/store';
 import { request } from '@shared/api';
 import type { Flight, FlightSearchArgs } from './model/types';
+import { FlightSchema, FlightsResponseSchema } from './model/schemas';
 
 export function getFlights(
   params: FlightSearchArgs,
@@ -13,11 +14,17 @@ export function getFlights(
     passengers: String(params.passengers),
   });
 
-  return request<Flight[]>(`/api/flights?${query}`, { signal });
+  return request(`/api/flights?${query}`, {
+    signal,
+    schema: FlightsResponseSchema,
+  });
 }
 
 export function getFlight(id: string, signal?: AbortSignal): Promise<Flight> {
-  return request<Flight>(`/api/flights/${encodeURIComponent(id)}`, { signal });
+  return request(`/api/flights/${encodeURIComponent(id)}`, {
+    signal,
+    schema: FlightSchema,
+  });
 }
 
 export const flightApi = api.injectEndpoints({

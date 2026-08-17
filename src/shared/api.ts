@@ -1,8 +1,14 @@
+import { z, type ZodType } from 'zod';
 import { mergeAbortSignals } from './lib/abortSignals';
-import { ApiError } from './lib/errors';
+import { ApiError, ValidationError } from './lib/errors';
 
 /** Таймаут сетевых запросов, чтобы UI не зависал навечно. */
 const REQUEST_TIMEOUT_MS = 15_000;
+
+export type RequestOptions<S extends ZodType | undefined = undefined> =
+  RequestInit & {
+    schema?: S;
+  };
 
 export function mergeRequestHeaders(
   initHeaders?: HeadersInit,
@@ -21,12 +27,34 @@ export function mergeRequestHeaders(
   return headers;
 }
 
+function parseResponse<S extends ZodType>(
+  json: unknown,
+  schema: S,
+): z.output<S> {
+  try {
+    return schema.parse(json);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw ValidationError.fromZodError(error);
+    }
+    throw error;
+  }
+}
+
 /** Универсальный fetch-клиент без знания о доменных типах. */
-export async function request<T>(
+export async function request<S extends ZodType>(
   path: string,
-  init?: RequestInit,
-): Promise<T> {
-  const { headers: initHeaders, signal, ...restInit } = init ?? {};
+  init: RequestInit & { schema: S },
+): Promise<z.output<S>>;
+export async function request(
+  path: string,
+  init?: RequestInit & { schema?: undefined },
+): Promise<unknown>;
+export async function request(
+  path: string,
+  init?: RequestOptions<ZodType | undefined>,
+): Promise<unknown> {
+  const { headers: initHeaders, signal, schema, ...restInit } = init ?? {};
   const hasBody = restInit.body != null;
   const merged = mergeAbortSignals(
     signal ?? undefined,
@@ -51,11 +79,16 @@ export async function request<T>(
       });
     }
 
+    // 204 No Content — тело отсутствует; schema не применяется.
     if (response.status === 204) {
-      return undefined as T;
+      return undefined;
     }
 
-    return (await response.json()) as T;
+    const json = await response.json();
+    if (schema) {
+      return parseResponse(json, schema);
+    }
+    return json;
   } finally {
     merged?.dispose();
   }

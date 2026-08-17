@@ -1,5 +1,6 @@
 import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
-import { ApiError } from '../lib/errors';
+import { reportError } from '../lib/reportError';
+import { ApiError, ValidationError } from '../lib/errors';
 
 export type ApiQueryError = {
   status?: number;
@@ -9,7 +10,18 @@ export type ApiQueryError = {
 
 export function toQueryError(error: unknown): ApiQueryError {
   if (error instanceof ApiError) {
-    return { status: error.status, message: error.message };
+    return {
+      status: error.status,
+      message: error.message,
+      name: error.name,
+    };
+  }
+  if (error instanceof ValidationError) {
+    return {
+      status: error.status,
+      message: error.message,
+      name: error.name,
+    };
   }
   // Duck-typing: DOMException/Error из другого realm может не пройти instanceof.
   if (
@@ -82,7 +94,11 @@ export async function runQuery<T>(
     if (isAbortError(error)) {
       throw error;
     }
-    console.error(error);
+    if (error instanceof ValidationError) {
+      reportError('API response validation failed', error.issues, error);
+    } else {
+      console.error(error);
+    }
     return { error: toQueryError(error) };
   }
 }

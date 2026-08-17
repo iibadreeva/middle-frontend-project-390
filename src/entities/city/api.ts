@@ -1,9 +1,10 @@
 import { api, runQuery } from '@shared/store';
 import { request } from '@shared/api';
 import type { City } from './model/types';
+import { CitiesResponseSchema } from './model/schemas';
 
 export function getCities(signal?: AbortSignal): Promise<City[]> {
-  return request<City[]>('/api/cities', { signal });
+  return request('/api/cities', { signal, schema: CitiesResponseSchema });
 }
 
 const CITIES_CACHE_SECONDS = 60 * 60;

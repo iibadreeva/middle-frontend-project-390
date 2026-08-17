@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { fixtureBooking } from '@shared/test/fixtures';
 import { cancelBooking, getBooking } from './api';
 
 describe('booking HTTP client', () => {
@@ -7,7 +8,7 @@ describe('booking HTTP client', () => {
   });
 
   it('getBooking requests booking by code and lastName query', async () => {
-    const booking = { code: 'AB12CD', status: 'confirmed' };
+    const booking = fixtureBooking();
     const fetchMock = vi.fn(async () => Response.json(booking));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -22,9 +23,8 @@ describe('booking HTTP client', () => {
   });
 
   it('getBooking encodes code in the path', async () => {
-    const fetchMock = vi.fn(async () =>
-      Response.json({ code: 'A/B', status: 'confirmed' }),
-    );
+    const booking = fixtureBooking({ code: 'A/B' });
+    const fetchMock = vi.fn(async () => Response.json(booking));
     vi.stubGlobal('fetch', fetchMock);
 
     await getBooking('A/B', 'Ivanov');
@@ -38,7 +38,7 @@ describe('booking HTTP client', () => {
   });
 
   it('cancelBooking posts lastName in the body', async () => {
-    const booking = { code: 'AB12CD', status: 'cancelled' };
+    const booking = fixtureBooking({ status: 'cancelled' });
     const fetchMock = vi.fn(async () => Response.json(booking));
     vi.stubGlobal('fetch', fetchMock);
 

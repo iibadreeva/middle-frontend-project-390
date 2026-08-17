@@ -1,6 +1,7 @@
 import { api, runQuery } from '@shared/store';
 import { request } from '@shared/api';
 import type { Booking, CreateBookingRequest } from './model/types';
+import { BookingSchema } from './model/schemas';
 
 export type BookingLookupArgs = {
   code: string;
@@ -11,10 +12,11 @@ export function createBooking(
   body: CreateBookingRequest,
   signal?: AbortSignal,
 ): Promise<Booking> {
-  return request<Booking>('/api/bookings', {
+  return request('/api/bookings', {
     method: 'POST',
     body: JSON.stringify(body),
     signal,
+    schema: BookingSchema,
   });
 }
 
@@ -24,10 +26,10 @@ export function getBooking(
   signal?: AbortSignal,
 ): Promise<Booking> {
   const query = new URLSearchParams({ lastName });
-  return request<Booking>(
-    `/api/bookings/${encodeURIComponent(code)}?${query}`,
-    { signal },
-  );
+  return request(`/api/bookings/${encodeURIComponent(code)}?${query}`, {
+    signal,
+    schema: BookingSchema,
+  });
 }
 
 export function cancelBooking(
@@ -35,14 +37,12 @@ export function cancelBooking(
   lastName: string,
   signal?: AbortSignal,
 ): Promise<Booking> {
-  return request<Booking>(
-    `/api/bookings/${encodeURIComponent(code)}/cancel`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ lastName }),
-      signal,
-    },
-  );
+  return request(`/api/bookings/${encodeURIComponent(code)}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({ lastName }),
+    signal,
+    schema: BookingSchema,
+  });
 }
 
 export const bookingApi = api.injectEndpoints({

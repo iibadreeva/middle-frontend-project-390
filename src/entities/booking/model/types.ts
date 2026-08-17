@@ -1,28 +1,11 @@
-import type { Flight, Money } from '@entities/flight';
+import type { Contact, Passenger } from './schemas';
 
-export type Passenger = {
-  firstName: string;
-  lastName: string;
-  dateOfBirth: string;
-  documentNumber: string;
-};
-
-export type Contact = {
-  email: string;
-  phone: string;
-};
-
-export type BookingStatus = 'confirmed' | 'cancelled';
-
-export type Booking = {
-  code: string;
-  status: BookingStatus;
-  flight: Flight;
-  passengers: Passenger[];
-  contact: Contact;
-  totalPrice: Money;
-  createdAt: string;
-};
+export type {
+  Booking,
+  BookingStatus,
+  Contact,
+  Passenger,
+} from './schemas';
 
 export type CreateBookingRequest = {
   flightId: string;

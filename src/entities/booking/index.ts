@@ -5,6 +5,7 @@ export type {
   CreateBookingRequest,
   Passenger,
 } from './model/types';
+export { BookingSchema } from './model/schemas';
 /**
  * Money живёт в flight (цена рейса); booking реэкспортирует тип и форматтеры,
  * чтобы UI брони не импортировал @entities/flight только ради цены.

@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 import { mergeRequestHeaders, request } from './api';
-import { ApiError } from './lib/errors';
+import { ApiError, ValidationError } from './lib/errors';
+
+const TestSchema = z.object({
+  code: z.string(),
+  name: z.string(),
+});
 
 describe('mergeRequestHeaders', () => {
   it('adds Accept by default and skips Content-Type without a body', () => {
@@ -77,7 +83,7 @@ describe('request errors', () => {
       })),
     );
 
-    const pending = request<unknown[]>('/api/cities', { signal: caller.signal });
+    const pending = request('/api/cities', { signal: caller.signal });
 
     await vi.waitFor(() => {
       expect(resolveJson).toBeTypeOf('function');
@@ -93,5 +99,76 @@ describe('request errors', () => {
 
     expect(removeSpy.mock.calls.some((call) => call[0] === 'abort')).toBe(true);
     removeSpy.mockRestore();
+  });
+});
+
+describe('request schema validation', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('parses JSON with the provided schema', async () => {
+    const body = { code: 'MOW', name: 'Москва' };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json(body)),
+    );
+
+    await expect(
+      request('/api/cities', { schema: TestSchema }),
+    ).resolves.toEqual(body);
+  });
+
+  it('throws ValidationError when JSON does not match the schema', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ code: 'MOW' })),
+    );
+
+    const error = await request('/api/cities', { schema: TestSchema }).catch(
+      (err: unknown) => err,
+    );
+
+    expect(error).toBeInstanceOf(ValidationError);
+    expect(error).toMatchObject({
+      status: 500,
+      message: 'Ответ сервера не соответствует схеме',
+      name: 'ValidationError',
+    });
+    expect((error as ValidationError).issues.length).toBeGreaterThan(0);
+  });
+
+  it('does not pass schema to fetch init', async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json({ code: 'MOW', name: 'Москва' }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await request('/api/cities', { schema: TestSchema });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/cities',
+      expect.not.objectContaining({ schema: expect.anything() }),
+    );
+  });
+
+  it('returns undefined for 204 without a schema', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(null, { status: 204 })),
+    );
+
+    await expect(request('/api/resource')).resolves.toBeUndefined();
+  });
+
+  it('returns undefined for 204 and ignores the schema', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(null, { status: 204 })),
+    );
+
+    await expect(
+      request('/api/resource', { schema: TestSchema }),
+    ).resolves.toBeUndefined();
   });
 });
