@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FormProvider, useForm } from 'react-hook-form';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormInput } from './FormInput';
@@ -221,5 +221,70 @@ describe('FormInput', () => {
     await user.type(screen.getByTestId('phone-input'), '1');
 
     expect(emailRendersRef.current).toBe(rendersAfterMount);
+  });
+
+  it('opens a calendar for type=date and commits the picked day', async () => {
+    const user = userEvent.setup();
+
+    type DateValues = { date: string };
+
+    function Harness() {
+      const form = useForm<DateValues>({
+        defaultValues: { date: '2026-08-15' },
+      });
+      return (
+        <FormProvider {...form}>
+          <FormInput<DateValues>
+            name="date"
+            label="Дата"
+            type="date"
+            data-testid="date-input"
+          />
+          <output data-testid="mirror">{form.watch('date')}</output>
+        </FormProvider>
+      );
+    }
+
+    render(<Harness />);
+    await user.click(screen.getByTestId('date-input'));
+    await user.click(screen.getByRole('button', { name: '20 августа 2026' }));
+
+    expect(screen.getByTestId('date-input')).toHaveValue('2026-08-20');
+    expect(screen.getByTestId('mirror')).toHaveTextContent('2026-08-20');
+  });
+
+  it('does not accept today unless type is date', () => {
+    type Props = Parameters<typeof FormInput>[0];
+
+    expectTypeOf<Props>()
+      .extract<{ type: 'date' }>()
+      .toHaveProperty('today');
+    expectTypeOf<Props>()
+      .exclude<{ type: 'date' }>()
+      .not.toHaveProperty('today');
+  });
+
+  it('does not leak today onto the date input', () => {
+    type DateValues = { date: string };
+
+    function Harness() {
+      const form = useForm<DateValues>({
+        defaultValues: { date: '2026-08-15' },
+      });
+      return (
+        <FormProvider {...form}>
+          <FormInput<DateValues>
+            name="date"
+            label="Дата"
+            type="date"
+            today="2026-08-20"
+            data-testid="date-input"
+          />
+        </FormProvider>
+      );
+    }
+
+    render(<Harness />);
+    expect(screen.getByTestId('date-input')).not.toHaveAttribute('today');
   });
 });

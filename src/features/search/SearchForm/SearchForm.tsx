@@ -2,8 +2,9 @@ import { useId } from 'react';
 import { Controller } from 'react-hook-form';
 import type { City } from '@entities/city';
 import { todayIsoDate } from '@shared/lib/format';
-import type { SearchFormValues } from '../resolveSearchValues';
+import { DatePicker } from '@shared/ui/DatePicker';
 import { FieldError } from '@shared/ui/FieldError';
+import type { SearchFormValues } from '../resolveSearchValues';
 import { CitySelect } from './CitySelect';
 import styles from './SearchForm.module.css';
 import { useSearchForm } from './useSearchForm';
@@ -41,6 +42,7 @@ export function SearchForm({
   }
 
   const dateErrorId = useId();
+  const dateInputId = useId();
   const passengersErrorId = useId();
   const originErrorId = useId();
   const destinationErrorId = useId();
@@ -105,12 +107,15 @@ export function SearchForm({
         )}
       />
 
-      <label className={styles.field}>
-        <span className={styles.label}>Дата</span>
-        <input
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor={dateInputId}>
+          Дата
+        </label>
+        <DatePicker
+          id={dateInputId}
           className={styles.input}
-          type="date"
           min={todayIsoDate(originZone)}
+          today={todayIsoDate(originZone)}
           aria-invalid={Boolean(dateError) || undefined}
           aria-describedby={dateError ? dateErrorId : undefined}
           data-testid="search-date"
@@ -128,7 +133,7 @@ export function SearchForm({
         >
           {dateError}
         </FieldError>
-      </label>
+      </div>
 
       <label className={styles.field}>
         <span className={styles.label}>Пассажиры</span>

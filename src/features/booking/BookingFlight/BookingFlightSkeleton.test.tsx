@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { BookingFlightSkeleton } from './BookingFlightSkeleton';
+import styles from './BookingFlight.module.css';
 
 describe('BookingFlightSkeleton', () => {
   it('exposes booking-flight status while loading', () => {
@@ -11,5 +12,7 @@ describe('BookingFlightSkeleton', () => {
     expect(root).toHaveAttribute('aria-busy', 'true');
     expect(root).toHaveAttribute('aria-label', 'Загрузка рейса');
     expect(root.querySelectorAll('[aria-hidden="true"]')).toHaveLength(4);
+    expect(root.querySelector(`.${styles.body}`)).toBeTruthy();
+    expect(root.querySelector(`.${styles.fares}`)).toBeTruthy();
   });
 });

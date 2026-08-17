@@ -5,5 +5,5 @@ export const bookingFormFieldClassNames: FormFieldClassNames = {
   field: styles.field,
   label: styles.label,
   control: styles.input,
-  error: styles.error,
+  error: styles.fieldErrorSr,
 };

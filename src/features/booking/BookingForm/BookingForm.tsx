@@ -2,11 +2,16 @@ import { useId, type ReactNode } from 'react';
 import { FormProvider, useFormState } from 'react-hook-form';
 import { formatPrice, totalMoney, type Money } from '@entities/booking';
 import type { BookingFormValues, BookingPassengerValues } from '../bookingSchema';
-import { passengersSectionError } from '../passengersSectionError';
-import { BOOKING_SEATS_ERROR } from '@shared/lib/messages';
+import {
+  passengersSectionAlert,
+  passengersSectionError,
+} from '../passengersSectionError';
+import {
+  BOOKING_PASSENGERS_HINT,
+  BOOKING_SEATS_ERROR,
+} from '@shared/lib/messages';
 import { FieldError } from '@shared/ui/FieldError';
-import { FormInput } from '@shared/ui/form';
-import { bookingFormFieldClassNames } from './bookingFormFieldClassNames';
+import { BookingContactSection } from './BookingContactSection';
 import { BookingFormActions } from './BookingFormActions';
 import styles from './BookingForm.module.css';
 import { PassengerFields } from './PassengerFields';
@@ -61,15 +66,18 @@ export function BookingForm({
     onSubmit,
   });
 
-  // Только `passengers` — email/phone ошибки живут в FormInput.
   const { errors } = useFormState({
     control: form.control,
     name: 'passengers',
   });
-  const passengersError = passengersSectionError(errors.passengers, {
+
+  const passengersRoot = passengersSectionError(errors.passengers, {
     seatsShortage,
   });
-  const passengersDescribedBy = passengersError
+  const passengersAlert = passengersSectionAlert(errors.passengers, {
+    seatsShortage,
+  });
+  const passengersDescribedBy = passengersRoot
     ? passengersErrorId
     : undefined;
   const totalLabel =
@@ -104,40 +112,27 @@ export function BookingForm({
 
         {flightSlot?.(passengerCount)}
 
-        <div className={styles.contact} data-testid="booking-contact">
-          <FormInput<BookingFormValues>
-            name="email"
-            label="Email"
-            type="email"
-            autoComplete="email"
-            disabled={submitting}
-            data-testid="contact-email"
-            errorTestId="contact-email-error"
-            classNames={bookingFormFieldClassNames}
-            registerOptions={fieldRegisterOptions}
-          />
-
-          <FormInput<BookingFormValues>
-            name="phone"
-            label="Телефон"
-            type="tel"
-            autoComplete="tel"
-            disabled={submitting}
-            data-testid="contact-phone"
-            errorTestId="contact-phone-error"
-            classNames={bookingFormFieldClassNames}
-            registerOptions={fieldRegisterOptions}
-          />
-        </div>
+        <BookingContactSection
+          headingId={`${formInstanceId}-contacts`}
+          submitting={submitting}
+          fieldRegisterOptions={fieldRegisterOptions}
+        />
 
         <div
+          className={styles.section}
           data-testid="passengers-section"
           role="group"
-          aria-label="Пассажиры"
+          aria-labelledby={`${formInstanceId}-passengers`}
           aria-describedby={passengersDescribedBy}
         >
-          <div className={styles.divider} role="separator">
-            Пассажиры
+          <div className={styles.sectionHeading}>
+            <h3
+              className={styles.sectionTitle}
+              id={`${formInstanceId}-passengers`}
+            >
+              Пассажиры
+            </h3>
+            <p className={styles.sectionHint}>{BOOKING_PASSENGERS_HINT}</p>
           </div>
 
           {seatsShortage ? (
@@ -151,11 +146,11 @@ export function BookingForm({
           ) : null}
 
           <FieldError
-            className={styles.error}
+            className={styles.sectionAlert}
             id={passengersErrorId}
             testId="passengers-error"
           >
-            {passengersError}
+            {passengersAlert}
           </FieldError>
 
           <ul className={styles.passengers} data-testid="passengers-list">

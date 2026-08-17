@@ -82,9 +82,17 @@ export function LookupPage() {
       />
 
       {status === 'loading' ? (
-        <p className={styles.notice} data-testid="booking-lookup-loading">
-          Загрузка брони…
-        </p>
+        <div
+          className={styles.skeleton}
+          data-testid="booking-lookup-loading"
+          role="status"
+          aria-busy="true"
+        >
+          <p className={styles.skeletonLabel}>Загрузка брони…</p>
+          <span className={styles.skeletonLine} />
+          <span className={styles.skeletonLine} />
+          <span className={styles.skeletonLineShort} />
+        </div>
       ) : null}
 
       {status === 'not-found' ? (

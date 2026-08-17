@@ -54,3 +54,11 @@ export const BOOKING_CANCEL_CONFIRM = 'Отменить эту бронь?';
 
 export const BOOKING_LOOKUP_REQUIRED_ERROR =
   'Укажите код бронирования и фамилию';
+
+/** Подсказка у секции пассажиров на форме брони. */
+export const BOOKING_PASSENGERS_HINT = 'Как в документе';
+
+/** Заголовок карточки пассажира и префикс сводки ошибок (индекс с нуля). */
+export function bookingPassengerLabel(index: number): string {
+  return `Пассажир ${index + 1}`;
+}

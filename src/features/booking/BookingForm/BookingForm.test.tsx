@@ -2,11 +2,18 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  BOOKING_DOB_ERROR,
+  BOOKING_EMAIL_ERROR,
   BOOKING_PASSENGERS_ERROR,
+  BOOKING_PASSENGERS_HINT,
+  BOOKING_PHONE_ERROR,
   BOOKING_REQUIRED_ERROR,
   BOOKING_SEATS_ERROR,
+  bookingPassengerLabel,
 } from '@shared/lib/messages';
 import { BookingForm } from './BookingForm';
+import { bookingFormFieldClassNames } from './bookingFormFieldClassNames';
+import styles from './BookingForm.module.css';
 
 const validPassenger = {
   firstName: 'Иван',
@@ -27,6 +34,17 @@ describe('BookingForm', () => {
     expect(screen.getByTestId('booking-submit')).toBeInTheDocument();
   });
 
+  it('shows the document hint without duplicating it in describedby', () => {
+    render(<BookingForm onSubmit={vi.fn()} />);
+
+    const hint = screen.getByText(BOOKING_PASSENGERS_HINT);
+    expect(hint).toBeInTheDocument();
+    expect(hint).not.toHaveAttribute('id');
+    expect(screen.getByTestId('passengers-section')).not.toHaveAttribute(
+      'aria-describedby',
+    );
+  });
+
   it('adds another passenger with the next index', async () => {
     const user = userEvent.setup();
     render(<BookingForm onSubmit={vi.fn()} />);
@@ -35,6 +53,9 @@ describe('BookingForm', () => {
 
     expect(screen.getByTestId('passenger-1-firstName')).toBeInTheDocument();
     expect(screen.getByTestId('passenger-1-lastName')).toBeInTheDocument();
+    expect(screen.getByTestId('remove-passenger-1')).toHaveAccessibleName(
+      'Удалить пассажира 2',
+    );
   });
 
   it('shows matching totals in flight slot and actions when passengers > 1', async () => {
@@ -113,6 +134,100 @@ describe('BookingForm', () => {
     );
     expect(screen.getByTestId('passenger-0-firstName-error')).toHaveTextContent(
       BOOKING_REQUIRED_ERROR,
+    );
+    expect(screen.getByTestId('booking-contact-error')).toHaveTextContent(
+      BOOKING_REQUIRED_ERROR,
+    );
+    expect(screen.getByTestId('passengers-error')).toHaveTextContent(
+      BOOKING_REQUIRED_ERROR,
+    );
+    expect(screen.getByTestId('booking-contact-error')).not.toHaveAttribute(
+      'role',
+    );
+    expect(screen.getByTestId('passengers-error')).not.toHaveAttribute('role');
+    expect(screen.getByText(BOOKING_PASSENGERS_HINT)).toBeInTheDocument();
+    expect(screen.getByTestId('booking-contact-error')).toBeVisible();
+    expect(screen.getByTestId('passengers-error')).toBeVisible();
+    expect(screen.getByTestId('contact-email-error')).toHaveClass(
+      styles.fieldErrorSr,
+    );
+    expect(screen.getByTestId('passenger-0-firstName-error')).toHaveClass(
+      styles.fieldErrorSr,
+    );
+    expect(screen.getByTestId('booking-contact')).not.toHaveAttribute(
+      'aria-describedby',
+    );
+    expect(screen.getByTestId('passengers-section')).not.toHaveAttribute(
+      'aria-describedby',
+    );
+    expect(screen.getByTestId('contact-email')).toHaveAttribute(
+      'aria-describedby',
+      screen.getByTestId('contact-email-error').getAttribute('id'),
+    );
+  });
+
+  it('wires passenger field error class to the visually hidden style', () => {
+    expect(bookingFormFieldClassNames.error).toBe(styles.fieldErrorSr);
+  });
+
+  it('joins distinct contact field errors in the section alert', async () => {
+    const user = userEvent.setup();
+    render(<BookingForm onSubmit={vi.fn()} />);
+
+    await user.type(screen.getByTestId('contact-email'), 'not-an-email');
+    await user.type(screen.getByTestId('contact-phone'), '123');
+    await user.click(screen.getByTestId('booking-submit'));
+
+    expect(screen.getByTestId('booking-contact-error')).toHaveTextContent(
+      `${BOOKING_EMAIL_ERROR}. ${BOOKING_PHONE_ERROR}`,
+    );
+  });
+
+  it('names passengers in the section alert when several have field errors', async () => {
+    const user = userEvent.setup();
+    render(
+      <BookingForm
+        initialValues={{
+          email: 'ivan@example.com',
+          phone: '+79991234567',
+          passengers: [
+            { ...validPassenger, firstName: '' },
+            { ...validPassenger, dateOfBirth: '2999-01-01' },
+          ],
+        }}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByTestId('booking-submit'));
+
+    expect(screen.getByTestId('passengers-error')).toHaveTextContent(
+      `${bookingPassengerLabel(0)}: ${BOOKING_REQUIRED_ERROR}. ${bookingPassengerLabel(1)}: ${BOOKING_DOB_ERROR}`,
+    );
+  });
+
+  it('shows specific passenger field error in the section alert', async () => {
+    const user = userEvent.setup();
+    render(
+      <BookingForm
+        initialValues={{
+          email: 'ivan@example.com',
+          phone: '+79991234567',
+          passengers: [
+            {
+              ...validPassenger,
+              dateOfBirth: '2999-01-01',
+            },
+          ],
+        }}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByTestId('booking-submit'));
+
+    expect(screen.getByTestId('passengers-error')).toHaveTextContent(
+      BOOKING_DOB_ERROR,
     );
   });
 
@@ -486,6 +601,7 @@ describe('BookingForm', () => {
       'aria-describedby',
       errorId,
     );
+    expect(screen.getByText(BOOKING_PASSENGERS_HINT)).toBeInTheDocument();
   });
 
   it('disables submit when the flight has no seats left', () => {

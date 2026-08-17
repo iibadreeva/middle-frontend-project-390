@@ -37,4 +37,17 @@ describe('BookingFlight', () => {
       normalize(screen.getByTestId('booking-flight-total-price').textContent),
     ).toBe('Итого: 16 200 ₽');
   });
+
+  it('exposes origin and destination names with a direction, not a replacing route label', () => {
+    render(
+      <TestProviders cities={fixtureCities}>
+        <BookingFlight flight={flight} passengers={1} />
+      </TestProviders>,
+    );
+
+    expect(screen.getByText(flight.origin.name)).toBeInTheDocument();
+    expect(screen.getByText('→')).toHaveClass('srOnly');
+    expect(screen.getByText(flight.destination.name)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Маршрут')).not.toBeInTheDocument();
+  });
 });
