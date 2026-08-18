@@ -128,7 +128,7 @@ describe('BookingPage', () => {
   });
 
   it('creates a booking and shows the success panel', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     vi.stubGlobal(
       'fetch',
       stubBookingApiFetch({
@@ -154,7 +154,7 @@ describe('BookingPage', () => {
   });
 
   it('shows booking-error when create fails with validation', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     vi.stubGlobal(
       'fetch',
       stubBookingApiFetch({
@@ -185,7 +185,7 @@ describe('BookingPage', () => {
   });
 
   it('shows a toast and sticky booking-error when create fails with a server error', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     vi.stubGlobal(
       'fetch',
       stubBookingApiFetch({
@@ -217,7 +217,7 @@ describe('BookingPage', () => {
   });
 
   it('dismisses the toast when the sticky booking-error is cleared by editing', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     vi.stubGlobal(
       'fetch',
       stubBookingApiFetch({
@@ -252,7 +252,7 @@ describe('BookingPage', () => {
   });
 
   it('clears the error toast after a successful retry without editing fields', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     let createAttempts = 0;
     vi.stubGlobal(
       'fetch',
@@ -293,7 +293,7 @@ describe('BookingPage', () => {
   });
 
   it('retries flight loading after an error', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     let flightAttempts = 0;
     vi.stubGlobal(
       'fetch',
@@ -335,7 +335,7 @@ describe('BookingPage', () => {
   });
 
   it('clears booking result when navigating to another flight', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     vi.stubGlobal(
       'fetch',
       stubBookingApiFetch({
@@ -371,7 +371,7 @@ describe('BookingPage', () => {
   });
 
   it('does not keep success after leaving and returning to the same flight', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const store = createTestStore({ cities: fixtureCities });
     vi.stubGlobal(
       'fetch',
