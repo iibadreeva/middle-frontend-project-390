@@ -7,9 +7,6 @@ export const CITIES_FALLBACK_NOTICE =
 /** Toast при ошибке /api/cities: без утверждения, что fallback уже показан. */
 export const CITIES_LOAD_ERROR = 'Не удалось загрузить полный список городов.';
 
-export const SEARCH_SAME_CITIES_ERROR =
-  'Город вылета и город прилёта должны отличаться';
-
 export const SEARCH_CITY_REQUIRED_ERROR = 'Выберите город';
 
 export const SEARCH_DATE_REQUIRED_ERROR = 'Укажите дату вылета';
@@ -55,8 +52,6 @@ export const BOOKING_LOOKUP_ERROR = 'Не удалось загрузить бр
 
 export const BOOKING_CANCEL_ERROR =
   'Не удалось отменить бронь. Попробуйте ещё раз.';
-
-export const BOOKING_CANCEL_CONFIRM = 'Отменить эту бронь?';
 
 export const BOOKING_LOOKUP_REQUIRED_ERROR =
   'Укажите код бронирования и фамилию';

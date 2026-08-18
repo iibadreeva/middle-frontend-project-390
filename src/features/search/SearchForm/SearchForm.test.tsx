@@ -6,9 +6,9 @@ import { DEFAULT_CITY_TIME_ZONE } from '@shared/data/cityTimeZones';
 import { todayIsoDate } from '@shared/lib/format';
 import { resolveTimeZoneByCode } from '@shared/lib/resolveCityTimeZone';
 import {
+  SEARCH_CITY_REQUIRED_ERROR,
   SEARCH_DATE_PAST_ERROR,
   SEARCH_PASSENGERS_ERROR,
-  SEARCH_SAME_CITIES_ERROR,
 } from '@shared/lib/messages';
 import { SearchForm } from './SearchForm';
 
@@ -57,18 +57,18 @@ describe('SearchForm', () => {
   it('shows field errors for invalid values from props synchronously on mount', () => {
     render(
       <SearchForm
-        values={{ ...baseValues, destination: 'MOW' }}
+        values={{ ...baseValues, origin: '' }}
         cities={cities}
         onSubmit={vi.fn()}
       />,
     );
 
-    expect(screen.getByTestId('search-destination-error')).toHaveTextContent(
-      SEARCH_SAME_CITIES_ERROR,
+    expect(screen.getByTestId('search-origin-error')).toHaveTextContent(
+      SEARCH_CITY_REQUIRED_ERROR,
     );
   });
 
-  it('clears field errors when dirty draft is reconciled against new cities', async () => {
+  it('remaps dirty draft cities when they disappear from the list', async () => {
     const user = userEvent.setup();
     const { rerender } = render(
       <SearchForm
@@ -79,13 +79,11 @@ describe('SearchForm', () => {
     );
 
     await user.selectOptions(screen.getByTestId('search-origin'), 'LED');
-    await user.selectOptions(screen.getByTestId('search-destination'), 'LED');
-    await user.click(screen.getByTestId('search-submit'));
-    expect(screen.getByTestId('search-destination-error')).toBeInTheDocument();
+    expect(screen.getByTestId('search-origin')).toHaveValue('LED');
 
     rerender(
       <SearchForm
-        values={{ ...baseValues, origin: 'MOW', destination: 'AER', passengers: 2 }}
+        values={{ ...baseValues, origin: 'MOW', destination: 'AER' }}
         cities={[
           { code: 'MOW', name: 'Москва', country: 'Россия' },
           { code: 'AER', name: 'Сочи', country: 'Россия' },
@@ -94,6 +92,9 @@ describe('SearchForm', () => {
       />,
     );
 
+    expect(screen.getByTestId('search-origin')).toHaveValue('MOW');
+    expect(screen.getByTestId('search-destination')).toHaveValue('AER');
+    expect(screen.queryByTestId('search-origin-error')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('search-destination-error'),
     ).not.toBeInTheDocument();
@@ -127,36 +128,25 @@ describe('SearchForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('clears same-city destination error when origin changes to a different city', async () => {
+  it('submits when origin and destination are the same', async () => {
     const user = userEvent.setup();
+    const onSubmit = vi.fn();
     render(
       <SearchForm
         values={{ ...baseValues, origin: 'MOW', destination: 'MOW' }}
         cities={cities}
-        onSubmit={vi.fn()}
+        onSubmit={onSubmit}
       />,
     );
 
-    expect(screen.getByTestId('search-destination-error')).toBeInTheDocument();
+    await user.click(screen.getByTestId('search-submit'));
 
-    await user.selectOptions(screen.getByTestId('search-origin'), 'LED');
-
-    expect(
-      screen.queryByTestId('search-destination-error'),
-    ).not.toBeInTheDocument();
-  });
-
-  it('shows same-city destination error when origin is changed to match', async () => {
-    const user = userEvent.setup();
-    render(
-      <SearchForm values={baseValues} cities={cities} onSubmit={vi.fn()} />,
-    );
-
-    await user.selectOptions(screen.getByTestId('search-origin'), 'LED');
-
-    expect(screen.getByTestId('search-destination-error')).toHaveTextContent(
-      SEARCH_SAME_CITIES_ERROR,
-    );
+    expect(onSubmit).toHaveBeenCalledWith({
+      origin: 'MOW',
+      destination: 'MOW',
+      date: baseValues.date,
+      passengers: 1,
+    });
   });
 
   it('revalidates date when origin timezone boundary changes', async () => {

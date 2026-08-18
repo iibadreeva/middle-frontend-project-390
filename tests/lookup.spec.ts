@@ -127,9 +127,6 @@ describe('booking lookup', () => {
       { waitUntil: 'load' },
     );
     await page.getByTestId('booking-details').waitFor({ state: 'visible' });
-    page.once('dialog', (dialog) => {
-      void dialog.accept();
-    });
     await page.getByTestId('cancel-booking').click();
 
     await page.waitForFunction(() => {

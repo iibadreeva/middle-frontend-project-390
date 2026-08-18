@@ -6,7 +6,6 @@ import {
   type BookingLookupValues,
 } from '@features/booking';
 import {
-  BOOKING_CANCEL_CONFIRM,
   BOOKING_CANCEL_ERROR,
   BOOKING_LOOKUP_ERROR,
   BOOKING_NOT_FOUND,
@@ -42,9 +41,6 @@ export function LookupPage() {
   }
 
   function handleCancel() {
-    if (!window.confirm(BOOKING_CANCEL_CONFIRM)) {
-      return;
-    }
     cancel();
   }
 

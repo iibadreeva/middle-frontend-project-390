@@ -2,14 +2,12 @@ import { describe, expect, it } from 'vitest';
 import type { City } from '@entities/city';
 import { DEFAULT_CITY_TIME_ZONE } from '@shared/data/cityTimeZones';
 import { todayIsoDate } from '@shared/lib/format';
-import { SEARCH_SAME_CITIES_ERROR } from '@shared/lib/messages';
 import { resolveTimeZoneByCode } from '@shared/lib/resolveCityTimeZone';
 import {
   parseSearchForm,
   searchFormResolverCacheKey,
   searchSchemaForCities,
 } from './parseSearchForm';
-import { issueAt } from '@shared/test/zodIssueAt';
 
 const cities: City[] = [
   { code: 'MOW', name: 'Москва', country: 'Россия' },
@@ -28,16 +26,10 @@ describe('parseSearchForm', () => {
     expect(parseSearchForm(valid, cities).success).toBe(true);
   });
 
-  it('rejects the same origin and destination', () => {
-    const result = parseSearchForm(
-      { ...valid, destination: 'MOW' },
-      cities,
-    );
-
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(issueAt(result, 'destination')).toBe(SEARCH_SAME_CITIES_ERROR);
-    }
+  it('accepts the same origin and destination', () => {
+    expect(
+      parseSearchForm({ ...valid, destination: 'MOW' }, cities).success,
+    ).toBe(true);
   });
 
   it('shares the schema factory with searchSchemaForCities', () => {

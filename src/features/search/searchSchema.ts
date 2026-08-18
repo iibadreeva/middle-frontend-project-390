@@ -5,7 +5,6 @@ import {
   SEARCH_DATE_PAST_ERROR,
   SEARCH_DATE_REQUIRED_ERROR,
   SEARCH_PASSENGERS_ERROR,
-  SEARCH_SAME_CITIES_ERROR,
 } from '@shared/lib/messages';
 
 export type SearchSchemaOptions = {
@@ -37,15 +36,6 @@ export function createSearchSchema({ timeZone }: SearchSchemaOptions) {
             value <= 9,
           { message: SEARCH_PASSENGERS_ERROR },
         ),
-    })
-    .superRefine((values, ctx) => {
-      if (values.origin === values.destination) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['destination'],
-          message: SEARCH_SAME_CITIES_ERROR,
-        });
-      }
     });
 }
 

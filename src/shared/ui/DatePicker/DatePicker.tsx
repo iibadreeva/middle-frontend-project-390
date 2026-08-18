@@ -192,7 +192,6 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       if (event.defaultPrevented || disabled || nativePicker || event.button !== 0) {
         return;
       }
-      event.preventDefault();
       event.currentTarget.focus();
       openCalendar();
     }
@@ -202,7 +201,6 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       if (event.defaultPrevented || disabled || nativePicker) {
         return;
       }
-      event.preventDefault();
       openCalendar();
     }
 

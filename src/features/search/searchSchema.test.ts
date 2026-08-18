@@ -8,7 +8,6 @@ import {
   SEARCH_DATE_PAST_ERROR,
   SEARCH_DATE_REQUIRED_ERROR,
   SEARCH_PASSENGERS_ERROR,
-  SEARCH_SAME_CITIES_ERROR,
 } from '@shared/lib/messages';
 import { createSearchSchema } from './searchSchema';
 
@@ -36,13 +35,10 @@ describe('createSearchSchema', () => {
     ).toBe(true);
   });
 
-  it('rejects the same origin and destination', () => {
-    const result = schema.safeParse({ ...valid, destination: 'MOW' });
-
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(issueAt(result, 'destination')).toBe(SEARCH_SAME_CITIES_ERROR);
-    }
+  it('accepts the same origin and destination', () => {
+    expect(
+      schema.safeParse({ ...valid, destination: 'MOW' }).success,
+    ).toBe(true);
   });
 
   it('rejects empty origin and destination', () => {

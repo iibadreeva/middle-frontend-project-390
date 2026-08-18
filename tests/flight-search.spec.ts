@@ -324,16 +324,18 @@ describe('flight search', () => {
     );
   });
 
-  it('blocks submit when origin and destination are the same', async () => {
-    await mockFlightsApi(page, () => ({
-      status: 200,
-      body: fixtureFlights,
-    }));
+  it('shows empty results when origin and destination are the same', async () => {
+    await mockFlightsApi(page, (url) => {
+      const origin = url.searchParams.get('origin');
+      const destination = url.searchParams.get('destination');
+      return {
+        status: 200,
+        body: origin === destination ? [] : fixtureFlights,
+      };
+    });
 
     await page.goto(appUrl, { waitUntil: 'load' });
     await page.getByTestId('flight-results').waitFor({ state: 'visible' });
-
-    const urlBefore = page.url();
 
     await page.getByTestId('search-origin').selectOption({ label: 'Москва' });
     await page
@@ -341,10 +343,8 @@ describe('flight search', () => {
       .selectOption({ label: 'Москва' });
     await page.getByTestId('search-submit').click();
 
-    expect(
-      await page.getByTestId('search-destination-error').isVisible(),
-    ).toBe(true);
-    expect(page.url()).toBe(urlBefore);
+    await page.getByTestId('flights-empty').waitFor({ state: 'visible' });
+    expect(await page.getByTestId('flight-results').count()).toBe(0);
   });
 
   it('blocks submit when date is empty', async () => {

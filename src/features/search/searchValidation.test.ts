@@ -7,7 +7,6 @@ import {
   SEARCH_DATE_PAST_ERROR,
   SEARCH_DATE_REQUIRED_ERROR,
   SEARCH_PASSENGERS_ERROR,
-  SEARCH_SAME_CITIES_ERROR,
 } from '@shared/lib/messages';
 import { validateSearchValues } from './searchValidation';
 
@@ -34,10 +33,10 @@ describe('validateSearchValues', () => {
     ).toBeNull();
   });
 
-  it('rejects the same origin and destination', () => {
+  it('accepts the same origin and destination', () => {
     expect(
       validateSearchValues({ ...valid, destination: 'MOW' }, zone),
-    ).toBe(SEARCH_SAME_CITIES_ERROR);
+    ).toBeNull();
   });
 
   it('rejects an empty origin', () => {

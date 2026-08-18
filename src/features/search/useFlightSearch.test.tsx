@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { FLIGHTS_SEARCH_ERROR, SEARCH_SAME_CITIES_ERROR } from '@shared/lib/messages';
+import { FLIGHTS_SEARCH_ERROR } from '@shared/lib/messages';
 import { fixtureCities, fixtureFlights, futureIsoDate } from '@shared/test/fixtures';
 import { createTestStore } from '@shared/test/store';
 import { TestProviders } from '@shared/test/providers';
@@ -180,8 +180,8 @@ describe('useFlightSearch', () => {
     expect(result.current.status).toBe('loading');
   });
 
-  it('does not request flights when origin and destination match', async () => {
-    const fetchMock = vi.mocked(fetch).mockResolvedValue(Response.json([]));
+  it('requests flights when origin and destination match', async () => {
+    vi.mocked(fetch).mockResolvedValue(Response.json([]));
 
     const { result } = renderHook(() => useFlightSearch(), {
       wrapper: createWrapper(
@@ -190,11 +190,11 @@ describe('useFlightSearch', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.valuesError).toBe(SEARCH_SAME_CITIES_ERROR);
+      expect(result.current.valuesError).toBeNull();
+      expect(result.current.status).toBe('success');
     });
-    expect(result.current.status).toBe('success');
-    expect(flightsFetchCalls()).toHaveLength(0);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.current.flights).toEqual([]);
+    expect(flightsFetchCalls().length).toBeGreaterThan(0);
   });
 
   it('updates search params on submit', async () => {

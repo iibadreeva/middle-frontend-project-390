@@ -1,10 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureBooking, fixtureCities } from '@shared/test/fixtures';
 import {
-  BOOKING_CANCEL_CONFIRM,
   BOOKING_CANCEL_ERROR,
   BOOKING_LOOKUP_ERROR,
   BOOKING_LOOKUP_REQUIRED_ERROR,
@@ -139,7 +138,6 @@ describe('LookupPage', () => {
   it('shows booking-cancel-error and toast when cancel fails', async () => {
     const user = userEvent.setup();
     const booking = fixtureBooking();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init) => {
       const url = String(input);
       if (url.includes('/api/cities')) {
@@ -164,7 +162,6 @@ describe('LookupPage', () => {
     expect(await screen.findByTestId('booking-details')).toBeInTheDocument();
     await user.click(screen.getByTestId('cancel-booking'));
 
-    expect(window.confirm).toHaveBeenCalledWith(BOOKING_CANCEL_CONFIRM);
     expect(await screen.findByTestId('booking-cancel-error')).toHaveTextContent(
       BOOKING_CANCEL_ERROR,
     );
@@ -177,21 +174,22 @@ describe('LookupPage', () => {
     );
   });
 
-  it('does not cancel when confirmation is dismissed', async () => {
+  it('cancels a confirmed booking and updates the status', async () => {
     const user = userEvent.setup();
     const booking = fixtureBooking();
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
-    const fetchMock = vi.mocked(fetch).mockImplementation(
+    let current = booking;
+    vi.mocked(fetch).mockImplementation(
       async (input: RequestInfo | URL, init) => {
         const url = String(input);
         if (url.includes('/api/cities')) {
           return Response.json(fixtureCities);
         }
         if (url.includes('/cancel') && init?.method === 'POST') {
-          return Response.json(fixtureBooking({ status: 'cancelled' }));
+          current = fixtureBooking({ status: 'cancelled' });
+          return Response.json(current);
         }
         if (url.includes('/api/bookings/AB12CD')) {
-          return Response.json(booking);
+          return Response.json(current);
         }
         return new Response('not found', { status: 404 });
       },
@@ -202,22 +200,15 @@ describe('LookupPage', () => {
     );
 
     expect(await screen.findByTestId('booking-details')).toBeInTheDocument();
-    const callsBefore = fetchMock.mock.calls.length;
     await user.click(screen.getByTestId('cancel-booking'));
 
-    expect(window.confirm).toHaveBeenCalled();
-    expect(
-      fetchMock.mock.calls.slice(callsBefore).some(([input, init]) => {
-        return (
-          String(input).includes('/cancel') &&
-          (init as RequestInit | undefined)?.method === 'POST'
-        );
-      }),
-    ).toBe(false);
-    expect(screen.getByTestId('booking-status')).toHaveAttribute(
-      'data-status',
-      'confirmed',
-    );
+    await waitFor(() => {
+      expect(screen.getByTestId('booking-status')).toHaveAttribute(
+        'data-status',
+        'cancelled',
+      );
+    });
+    expect(screen.queryByTestId('cancel-booking')).not.toBeInTheDocument();
   });
 
   it('retries lookup via booking-lookup-retry after a server error', async () => {
