@@ -44,7 +44,14 @@ export function useFlightSearch(): {
       return;
     }
 
-    setSearchParams(toSearchParamsRecord(values), { replace: true });
+    const nextParams = toSearchParamsRecord(values);
+    const timer = window.setTimeout(() => {
+      setSearchParams(nextParams, { replace: true });
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [searchParams, values, setSearchParams]);
 
   const skip = !citiesReady || Boolean(valuesError);

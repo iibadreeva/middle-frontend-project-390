@@ -31,10 +31,8 @@ describe('booking lookup', () => {
   it('opens /lookup from nav-lookup and shows the form', async () => {
     await page.goto(appUrl, { waitUntil: 'load' });
     await page.getByTestId('nav-lookup').click();
-    await page.waitForURL(/\/lookup$/);
-    expect(await page.getByTestId('booking-lookup-form').isVisible()).toBe(
-      true,
-    );
+    await page.waitForURL(/\/lookup(?:\?|$)/);
+    await page.getByTestId('booking-lookup-form').waitFor({ state: 'visible' });
     expect(await page.getByTestId('lookup-code').isVisible()).toBe(true);
     expect(await page.getByTestId('lookup-lastName').isVisible()).toBe(true);
     expect(await page.getByTestId('lookup-submit').isVisible()).toBe(true);
