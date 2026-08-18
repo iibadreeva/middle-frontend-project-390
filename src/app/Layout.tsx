@@ -94,6 +94,17 @@ export function Layout() {
           <Outlet />
         </ErrorBoundary>
       </main>
+      <footer className={styles.footer}>
+        <button
+          type="button"
+          className={styles.crashButton}
+          onClick={() => {
+            throw new Error('Bugsink test error');
+          }}
+        >
+          Тестовая ошибка
+        </button>
+      </footer>
     </div>
   );
 }
