@@ -59,7 +59,7 @@ export function Layout() {
         <div className={styles.headerInner}>
           <h1 className={styles.title} data-testid="home-heading">
             <Link to={homeHref} className={styles.titleLink}>
-              Бронирование авиабилетов
+              Бронирование авиабилетов1
             </Link>
           </h1>
           <nav
