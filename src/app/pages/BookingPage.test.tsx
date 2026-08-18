@@ -111,7 +111,7 @@ describe('BookingPage', () => {
 
     renderBooking(bookingHref('fl_1'));
 
-    const skeleton = screen.getByTestId('booking-flight');
+    const skeleton = screen.getByTestId('booking-flight-loading');
     expect(skeleton).toHaveAttribute('role', 'status');
     expect(skeleton).toHaveAttribute('aria-busy', 'true');
 

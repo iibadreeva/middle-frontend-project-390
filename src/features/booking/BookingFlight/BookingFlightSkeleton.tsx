@@ -5,7 +5,7 @@ export function BookingFlightSkeleton() {
   return (
     <div
       className={styles.summary}
-      data-testid="booking-flight"
+      data-testid="booking-flight-loading"
       role="status"
       aria-busy="true"
       aria-label="Загрузка рейса"

@@ -4,10 +4,10 @@ import { BookingFlightSkeleton } from './BookingFlightSkeleton';
 import styles from './BookingFlight.module.css';
 
 describe('BookingFlightSkeleton', () => {
-  it('exposes booking-flight status while loading', () => {
+  it('exposes booking-flight-loading status while loading', () => {
     render(<BookingFlightSkeleton />);
 
-    const root = screen.getByTestId('booking-flight');
+    const root = screen.getByTestId('booking-flight-loading');
     expect(root).toHaveAttribute('role', 'status');
     expect(root).toHaveAttribute('aria-busy', 'true');
     expect(root).toHaveAttribute('aria-label', 'Загрузка рейса');
