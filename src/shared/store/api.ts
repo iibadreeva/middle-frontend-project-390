@@ -1,26 +1,28 @@
 import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
+import type { BaseQueryFn } from '@reduxjs/toolkit/query';
 import { reportError } from '../lib/reportError';
-import { ApiError, ValidationError } from '../lib/errors';
+import { ApiError, ResponseValidationError, isAbortError } from '../lib/errors';
+import {
+  registerQueryErrorPoliciesFromEndpoints,
+  type QueryErrorExtraOptions,
+} from './queryErrorPolicy';
+
+export { isAbortError };
 
 export type ApiQueryError = {
   status?: number;
   message: string;
   name?: string;
+  code?: string;
 };
 
 export function toQueryError(error: unknown): ApiQueryError {
   if (error instanceof ApiError) {
     return {
-      status: error.status,
       message: error.message,
       name: error.name,
-    };
-  }
-  if (error instanceof ValidationError) {
-    return {
-      status: error.status,
-      message: error.message,
-      name: error.name,
+      ...(error.status !== undefined ? { status: error.status } : {}),
+      ...(error.code !== undefined ? { code: error.code } : {}),
     };
   }
   // Duck-typing: DOMException/Error из другого realm может не пройти instanceof.
@@ -38,23 +40,18 @@ export function toQueryError(error: unknown): ApiQueryError {
       'name' in error && typeof error.name === 'string'
         ? error.name
         : undefined;
+    const code =
+      'code' in error && typeof error.code === 'string'
+        ? error.code
+        : undefined;
     return {
       message: error.message,
       ...(status !== undefined ? { status } : {}),
       ...(name !== undefined ? { name } : {}),
+      ...(code !== undefined ? { code } : {}),
     };
   }
   return { message: String(error) };
-}
-
-/** AbortError из fetch/RTK или сериализованный аналог (в т.ч. из другого realm). */
-export function isAbortError(error: unknown): boolean {
-  return Boolean(
-    error &&
-      typeof error === 'object' &&
-      'name' in error &&
-      error.name === 'AbortError',
-  );
 }
 
 export function getQueryErrorStatus(error: unknown): number | undefined {
@@ -94,10 +91,16 @@ export async function runQuery<T>(
     if (isAbortError(error)) {
       throw error;
     }
-    if (error instanceof ValidationError) {
-      reportError('API response validation failed', error.issues, error);
+    if (error instanceof ResponseValidationError) {
+      reportError(
+        error.kind === 'invalid-json'
+          ? 'API response is not JSON'
+          : 'API response validation failed',
+        error.issues,
+        error,
+      );
     } else {
-      console.error(error);
+      reportError('API request failed', error);
     }
     return { error: toQueryError(error) };
   }
@@ -112,7 +115,27 @@ export async function runQuery<T>(
  */
 export const api = createApi({
   reducerPath: 'api',
-  baseQuery: fakeBaseQuery<ApiQueryError>(),
+  baseQuery: fakeBaseQuery<ApiQueryError>() as unknown as BaseQueryFn<
+    void,
+    never,
+    ApiQueryError,
+    QueryErrorExtraOptions
+  >,
   tagTypes: ['City', 'Flight', 'Booking'],
   endpoints: () => ({}),
 });
+
+const injectEndpoints = api.injectEndpoints.bind(api);
+api.injectEndpoints = ((config) => {
+  const endpoints = typeof config === 'function' ? config : config.endpoints;
+  const rest = typeof config === 'function' ? {} : config;
+  return injectEndpoints({
+    ...rest,
+    endpoints: (build) => {
+      const definitions = endpoints(build);
+      // extraOptions не торчит на public endpoint — копируем политику в реестр.
+      registerQueryErrorPoliciesFromEndpoints(definitions);
+      return definitions;
+    },
+  });
+}) as typeof api.injectEndpoints;

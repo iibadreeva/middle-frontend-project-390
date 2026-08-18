@@ -1,4 +1,10 @@
-import { act, fireEvent, render, renderHook, screen } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -7,7 +13,7 @@ import {
   ToastProvider,
   useToast,
 } from './ToastProvider';
-import { toast } from './toast';
+import { toast } from '@shared/lib/toast';
 
 describe('ToastProvider', () => {
   afterEach(() => {
@@ -20,10 +26,7 @@ describe('ToastProvider', () => {
     function Probe() {
       const toast = useToast();
       return (
-        <button
-          type="button"
-          onClick={() => toast.error('Сеть недоступна')}
-        >
+        <button type="button" onClick={() => toast.error('Сеть недоступна')}>
           show
         </button>
       );

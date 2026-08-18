@@ -1,17 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { REQUEST_FAILED } from '@shared/lib/messages';
+import { toast } from '@shared/lib/toast';
+import { rtkQueryErrorMiddleware, rtkQueryErrorTag } from './errorMiddleware';
 import {
-  BOOKING_CANCEL_ERROR,
-  BOOKING_CREATE_ERROR,
-  BOOKING_LOOKUP_ERROR,
-  FLIGHT_LOAD_ERROR,
-  FLIGHTS_SEARCH_ERROR,
-  REQUEST_FAILED,
-} from '@shared/lib/messages';
-import { toast } from '@shared/ui/Toast';
-import {
-  rtkQueryErrorMiddleware,
-  rtkQueryErrorTag,
-} from './errorMiddleware';
+  registerQueryErrorPolicy,
+  resetQueryErrorPolicies,
+} from './queryErrorPolicy';
 
 type EndpointKind = 'query' | 'mutation';
 
@@ -64,37 +58,24 @@ describe('rtkQueryErrorMiddleware', () => {
   const run = rtkQueryErrorMiddleware({} as never)(next);
 
   afterEach(() => {
+    resetQueryErrorPolicies();
     vi.restoreAllMocks();
     next.mockClear();
   });
 
-  it('toasts a 5xx lookup error with the domain message and endpoint tag', () => {
+  it('toasts a 5xx error with the registered message and endpoint tag', () => {
+    registerQueryErrorPolicy('lookup', { message: 'Lookup failed' });
     const error = vi.spyOn(toast, 'error');
-    const action = rejectedAction('getBooking', {
+    const action = rejectedAction('lookup', {
       status: 500,
       message: 'boom',
     });
 
     expect(run(action)).toBe(action);
-    expect(error).toHaveBeenCalledWith(BOOKING_LOOKUP_ERROR, {
-      tag: rtkQueryErrorTag('getBooking'),
+    expect(error).toHaveBeenCalledWith('Lookup failed', {
+      tag: rtkQueryErrorTag('lookup'),
     });
     expect(next).toHaveBeenCalledWith(action);
-  });
-
-  it.each([
-    ['cancelBooking', BOOKING_CANCEL_ERROR, 'mutation'],
-    ['createBooking', BOOKING_CREATE_ERROR, 'mutation'],
-    ['getFlights', FLIGHTS_SEARCH_ERROR, 'query'],
-    ['getFlight', FLIGHT_LOAD_ERROR, 'query'],
-  ] as const)('maps %s to the user-facing message', (endpoint, message, kind) => {
-    const error = vi.spyOn(toast, 'error');
-
-    run(rejectedAction(endpoint, { status: 503, message: 'upstream' }, kind));
-
-    expect(error).toHaveBeenCalledWith(message, {
-      tag: rtkQueryErrorTag(endpoint),
-    });
   });
 
   it('toasts a network error without status using the fallback message', () => {
@@ -107,7 +88,8 @@ describe('rtkQueryErrorMiddleware', () => {
     });
   });
 
-  it('does not toast getCities errors — fallback notice lives on the search page', () => {
+  it('does not toast silent endpoints', () => {
+    registerQueryErrorPolicy('getCities', { silent: true });
     const error = vi.spyOn(toast, 'error');
 
     run(rejectedAction('getCities', { status: 503, message: 'upstream' }));
@@ -115,30 +97,32 @@ describe('rtkQueryErrorMiddleware', () => {
     expect(error).not.toHaveBeenCalled();
   });
 
-  it('toasts ValidationError like other 5xx errors', () => {
+  it('toasts ResponseValidationError like other 5xx errors', () => {
+    registerQueryErrorPolicy('search', { message: 'Search failed' });
     const error = vi.spyOn(toast, 'error');
 
     run(
-      rejectedAction('getFlights', {
+      rejectedAction('search', {
         status: 500,
         message: 'Ответ сервера не соответствует схеме',
-        name: 'ValidationError',
+        name: 'ResponseValidationError',
       }),
     );
 
-    expect(error).toHaveBeenCalledWith(FLIGHTS_SEARCH_ERROR, {
-      tag: rtkQueryErrorTag('getFlights'),
+    expect(error).toHaveBeenCalledWith('Search failed', {
+      tag: rtkQueryErrorTag('search'),
     });
   });
 
-  it('does not toast getCities ValidationError', () => {
+  it('does not toast a silent endpoint ResponseValidationError', () => {
+    registerQueryErrorPolicy('getCities', { silent: true });
     const error = vi.spyOn(toast, 'error');
 
     run(
       rejectedAction('getCities', {
         status: 500,
         message: 'Ответ сервера не соответствует схеме',
-        name: 'ValidationError',
+        name: 'ResponseValidationError',
       }),
     );
 
@@ -146,19 +130,58 @@ describe('rtkQueryErrorMiddleware', () => {
   });
 
   it('does not toast HTTP 4xx errors', () => {
+    registerQueryErrorPolicy('lookup', { message: 'Lookup failed' });
     const error = vi.spyOn(toast, 'error');
 
-    run(rejectedAction('getBooking', { status: 404, message: 'missing' }));
-    run(rejectedAction('createBooking', { status: 400, message: 'invalid' }));
+    run(rejectedAction('lookup', { status: 404, message: 'missing' }));
+    run(
+      rejectedAction('create', { status: 400, message: 'invalid' }, 'mutation'),
+    );
+    run(rejectedAction('lookup', { status: 408, message: 'timeout' }));
 
     expect(error).not.toHaveBeenCalled();
   });
 
-  it('does not toast abort errors', () => {
+  it('toasts a client timeout by code even without an HTTP status', () => {
+    registerQueryErrorPolicy('lookup', { message: 'Lookup failed' });
     const error = vi.spyOn(toast, 'error');
 
     run(
-      rejectedAction('getBooking', {
+      rejectedAction('lookup', {
+        code: 'timeout',
+        message: 'Request timed out',
+        name: 'ApiError',
+      }),
+    );
+
+    expect(error).toHaveBeenCalledWith('Lookup failed', {
+      tag: rtkQueryErrorTag('lookup'),
+    });
+  });
+
+  it('toasts a client timeout even if a 4xx status was attached by mistake', () => {
+    registerQueryErrorPolicy('lookup', { message: 'Lookup failed' });
+    const error = vi.spyOn(toast, 'error');
+
+    run(
+      rejectedAction('lookup', {
+        code: 'timeout',
+        status: 408,
+        message: 'Request timed out',
+      }),
+    );
+
+    expect(error).toHaveBeenCalledWith('Lookup failed', {
+      tag: rtkQueryErrorTag('lookup'),
+    });
+  });
+
+  it('does not toast abort errors', () => {
+    registerQueryErrorPolicy('lookup', { message: 'Lookup failed' });
+    const error = vi.spyOn(toast, 'error');
+
+    run(
+      rejectedAction('lookup', {
         name: 'AbortError',
         message: 'Aborted',
       }),
@@ -169,10 +192,10 @@ describe('rtkQueryErrorMiddleware', () => {
 
   it('dismisses the endpoint toast when a matching request becomes pending', () => {
     const dismiss = vi.spyOn(toast, 'dismiss');
-    const action = pendingAction('getBooking');
+    const action = pendingAction('lookup');
 
     expect(run(action)).toBe(action);
-    expect(dismiss).toHaveBeenCalledWith(rtkQueryErrorTag('getBooking'));
+    expect(dismiss).toHaveBeenCalledWith(rtkQueryErrorTag('lookup'));
     expect(next).toHaveBeenCalledWith(action);
   });
 
@@ -185,7 +208,7 @@ describe('rtkQueryErrorMiddleware', () => {
         requestId: 'req-1',
         requestStatus: 'rejected' as const,
         rejectedWithValue: true as const,
-        arg: { endpointName: 'getBooking' },
+        arg: { endpointName: 'lookup' },
       },
     };
 

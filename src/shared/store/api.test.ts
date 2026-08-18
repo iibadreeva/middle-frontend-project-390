@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ApiError, ValidationError } from '../lib/errors';
+import {
+  ApiError,
+  RESPONSE_INVALID_JSON_MESSAGE,
+  ResponseValidationError,
+} from '../lib/errors';
 import * as reportErrorModule from '../lib/reportError';
-import { isAbortError, runQuery, toQueryError } from './api';
+import { runQuery, toQueryError } from './api';
 
 describe('toQueryError', () => {
   it('maps ApiError with status, message, and name', () => {
@@ -12,20 +16,34 @@ describe('toQueryError', () => {
     });
   });
 
-  it('maps ValidationError with status, message, and name', () => {
-    const error = new ValidationError('Ответ сервера не соответствует схеме', [
-      { path: 'code', message: 'Required' },
-    ]);
+  it('maps a client timeout without inventing an HTTP status', () => {
+    const timeout = ApiError.timeout();
+    expect(toQueryError(timeout)).toEqual({
+      message: timeout.message,
+      name: 'ApiError',
+      code: timeout.code,
+    });
+  });
+
+  it('maps ResponseValidationError with status, message, and name', () => {
+    const error = new ResponseValidationError(
+      'Ответ сервера не соответствует схеме',
+      [{ path: 'code', message: 'Required' }],
+    );
     expect(toQueryError(error)).toEqual({
       status: 500,
       message: 'Ответ сервера не соответствует схеме',
-      name: 'ValidationError',
+      name: 'ResponseValidationError',
     });
   });
 
   it('preserves numeric status on duck-typed objects with a message', () => {
     expect(
-      toQueryError({ status: 503, message: 'upstream unavailable', name: 'Error' }),
+      toQueryError({
+        status: 503,
+        message: 'upstream unavailable',
+        name: 'Error',
+      }),
     ).toEqual({
       status: 503,
       message: 'upstream unavailable',
@@ -41,34 +59,22 @@ describe('toQueryError', () => {
     });
   });
 
-  it('ignores non-numeric status on duck-typed objects', () => {
+  it('preserves a string code on duck-typed objects', () => {
     expect(
-      toQueryError({ status: 'FETCH_ERROR', message: 'network' }),
-    ).toEqual({ message: 'network' });
+      toQueryError({
+        code: 'timeout',
+        message: 'Request timed out',
+        name: 'ApiError',
+      }),
+    ).toEqual({
+      code: 'timeout',
+      message: 'Request timed out',
+      name: 'ApiError',
+    });
   });
 
   it('stringifies unknown values', () => {
     expect(toQueryError(42)).toEqual({ message: '42' });
-  });
-});
-
-describe('isAbortError', () => {
-  it('detects AbortError by name', () => {
-    expect(isAbortError(new DOMException('Aborted', 'AbortError'))).toBe(true);
-    expect(isAbortError({ name: 'AbortError', message: 'Aborted' })).toBe(true);
-  });
-
-  it('does not treat AbortError-looking messages without the name as abort', () => {
-    expect(isAbortError({ message: 'AbortError: signal is aborted' })).toBe(
-      false,
-    );
-  });
-
-  it('rejects unrelated errors', () => {
-    expect(isAbortError(new Error('offline'))).toBe(false);
-    expect(isAbortError({ name: 'TypeError', message: 'fail' })).toBe(false);
-    expect(isAbortError(null)).toBe(false);
-    expect(isAbortError('AbortError')).toBe(false);
   });
 });
 
@@ -107,9 +113,9 @@ describe('runQuery', () => {
     ).rejects.toBe(abortError);
   });
 
-  it('logs ValidationError via reportError', async () => {
+  it('logs ResponseValidationError via reportError', async () => {
     const signal = new AbortController().signal;
-    const validationError = new ValidationError(
+    const validationError = new ResponseValidationError(
       'Ответ сервера не соответствует схеме',
       [{ path: 'code', message: 'Required' }],
     );
@@ -125,7 +131,7 @@ describe('runQuery', () => {
       error: {
         status: 500,
         message: 'Ответ сервера не соответствует схеме',
-        name: 'ValidationError',
+        name: 'ResponseValidationError',
       },
     });
 
@@ -133,6 +139,35 @@ describe('runQuery', () => {
       'API response validation failed',
       validationError.issues,
       validationError,
+    );
+    reportSpy.mockRestore();
+  });
+
+  it('logs invalid JSON via a distinct reportError prefix', async () => {
+    const signal = new AbortController().signal;
+    const invalidJson = ResponseValidationError.fromInvalidJson(
+      new SyntaxError('Unexpected token'),
+    );
+    const reportSpy = vi
+      .spyOn(reportErrorModule, 'reportError')
+      .mockImplementation(() => {});
+
+    await expect(
+      runQuery(signal, async () => {
+        throw invalidJson;
+      }),
+    ).resolves.toEqual({
+      error: {
+        status: 500,
+        message: RESPONSE_INVALID_JSON_MESSAGE,
+        name: 'ResponseValidationError',
+      },
+    });
+
+    expect(reportSpy).toHaveBeenCalledWith(
+      'API response is not JSON',
+      invalidJson.issues,
+      invalidJson,
     );
     reportSpy.mockRestore();
   });

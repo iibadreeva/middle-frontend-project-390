@@ -20,4 +20,28 @@ describe('BookingSchema', () => {
     delete broken.passengers;
     expect(BookingSchema.safeParse(broken).success).toBe(false);
   });
+
+  it('rejects a non-date passenger dateOfBirth', () => {
+    expect(
+      BookingSchema.safeParse(
+        fixtureBooking({
+          passengers: [
+            {
+              firstName: 'Иван',
+              lastName: 'Петров',
+              dateOfBirth: '20.05.1990',
+              documentNumber: '4509 123456',
+            },
+          ],
+        }),
+      ).success,
+    ).toBe(false);
+  });
+
+  it('rejects a non-datetime createdAt', () => {
+    expect(
+      BookingSchema.safeParse(fixtureBooking({ createdAt: '2026-06-25' }))
+        .success,
+    ).toBe(false);
+  });
 });

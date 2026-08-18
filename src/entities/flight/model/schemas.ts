@@ -1,8 +1,12 @@
 import { CitySchema } from '@entities/city';
+import {
+  IsoDateTimeSchema,
+  NonNegativeInt32Schema,
+} from '@shared/lib/openApiSchemas';
 import { z } from 'zod';
 
 export const MoneySchema = z.object({
-  amount: z.number(),
+  amount: NonNegativeInt32Schema,
   currency: z.string(),
 });
 
@@ -17,11 +21,11 @@ export const FlightSchema = z.object({
   airline: AirlineSchema,
   origin: CitySchema,
   destination: CitySchema,
-  departureAt: z.string(),
-  arrivalAt: z.string(),
-  durationMinutes: z.number(),
+  departureAt: IsoDateTimeSchema,
+  arrivalAt: IsoDateTimeSchema,
+  durationMinutes: NonNegativeInt32Schema,
   price: MoneySchema,
-  seatsAvailable: z.number(),
+  seatsAvailable: NonNegativeInt32Schema,
 });
 
 export const FlightsResponseSchema = z.array(FlightSchema);

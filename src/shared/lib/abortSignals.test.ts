@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { mergeAbortSignals } from './abortSignals';
+import { describe, expect, it, vi } from 'vitest';
+import { createTimeoutSignal, mergeAbortSignals } from './abortSignals';
 
 describe('mergeAbortSignals', () => {
   it('returns undefined when no signals are provided', () => {
@@ -34,6 +34,28 @@ describe('mergeAbortSignals', () => {
     expect(merged?.signal.reason).toBe('already');
   });
 
+  it('removes listeners from earlier sources when a later source is already aborted', () => {
+    const first = new AbortController();
+    const second = new AbortController();
+    second.abort('already');
+
+    const addSpy = vi.spyOn(first.signal, 'addEventListener');
+    const removeSpy = vi.spyOn(first.signal, 'removeEventListener');
+    const merged = mergeAbortSignals(first.signal, second.signal);
+
+    expect(merged?.signal.aborted).toBe(true);
+    expect(merged?.signal.reason).toBe('already');
+
+    const abortAdds = addSpy.mock.calls.filter((call) => call[0] === 'abort');
+    const abortRemoves = removeSpy.mock.calls.filter(
+      (call) => call[0] === 'abort',
+    );
+    expect(abortRemoves.length).toBeGreaterThanOrEqual(abortAdds.length);
+
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
+  });
+
   it('does not use AbortSignal.any', () => {
     const original = AbortSignal.any;
     let called = false;
@@ -62,5 +84,42 @@ describe('mergeAbortSignals', () => {
 
     first.abort('late');
     expect(merged?.signal.aborted).toBe(false);
+  });
+});
+
+describe('createTimeoutSignal', () => {
+  it('does not use AbortSignal.timeout so dispose can clear the timer', () => {
+    vi.useFakeTimers();
+    const native = vi.spyOn(AbortSignal, 'timeout');
+
+    try {
+      const created = createTimeoutSignal(1000);
+      expect(native).not.toHaveBeenCalled();
+
+      created.dispose();
+      vi.advanceTimersByTime(1000);
+      expect(created.signal.aborted).toBe(false);
+    } finally {
+      native.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it('aborts with TimeoutError after the delay', () => {
+    vi.useFakeTimers();
+
+    try {
+      const created = createTimeoutSignal(1000);
+      expect(created.signal.aborted).toBe(false);
+
+      vi.advanceTimersByTime(1000);
+
+      expect(created.signal.aborted).toBe(true);
+      expect((created.signal.reason as { name?: string } | undefined)?.name).toBe(
+        'TimeoutError',
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { rtkQueryErrorTag } from '@shared/store';
-import { toast } from '@shared/ui/Toast/toast';
+import { toast } from '@shared/ui/Toast';
 import { useCreateBooking } from './useCreateBooking';
 
 /** Tag toast'ов создания брони — dismiss не трогает чужие уведомления. */

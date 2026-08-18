@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import styles from './Toast.module.css';
-import { toast as toastBus, type ToastErrorOptions } from './toast';
+import { toast as toastBus, type ToastErrorOptions } from '@shared/lib/toast';
 
 export const TOAST_DURATION_MS = 5000;
 export const TOAST_MAX_VISIBLE = 3;

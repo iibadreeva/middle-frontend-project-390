@@ -146,7 +146,7 @@ describe('useFlightSearch', () => {
     });
 
     await waitFor(() => {
-      expect(consoleError).toHaveBeenCalledWith(failure);
+      expect(consoleError).toHaveBeenCalledWith('API request failed', failure);
     });
     consoleError.mockRestore();
   });

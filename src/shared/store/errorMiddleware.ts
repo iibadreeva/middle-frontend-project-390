@@ -3,31 +3,19 @@ import {
   isRejectedWithValue,
   type Middleware,
 } from '@reduxjs/toolkit';
-import {
-  BOOKING_CANCEL_ERROR,
-  BOOKING_CREATE_ERROR,
-  BOOKING_LOOKUP_ERROR,
-  FLIGHT_LOAD_ERROR,
-  FLIGHTS_SEARCH_ERROR,
-  REQUEST_FAILED,
-} from '@shared/lib/messages';
-import { toast } from '@shared/ui/Toast/toast';
+import { isRequestTimeoutError } from '@shared/lib/errors';
+import { REQUEST_FAILED } from '@shared/lib/messages';
+import { toast } from '@shared/lib/toast';
 import { getQueryErrorStatus, isAbortError } from './api';
+import {
+  getQueryErrorPolicy,
+  isSilentQueryErrorPolicy,
+  queryErrorPolicyMessage,
+} from './queryErrorPolicy';
 
 export function rtkQueryErrorTag(endpointName: string): string {
   return `rtk:${endpointName}`;
 }
-
-const ENDPOINT_ERROR_MESSAGES: Record<string, string> = {
-  getBooking: BOOKING_LOOKUP_ERROR,
-  cancelBooking: BOOKING_CANCEL_ERROR,
-  createBooking: BOOKING_CREATE_ERROR,
-  getFlights: FLIGHTS_SEARCH_ERROR,
-  getFlight: FLIGHT_LOAD_ERROR,
-};
-
-/** Fallback-notice на поиске; Layout тянет города на всех страницах. */
-const TOAST_SILENT_ENDPOINTS = new Set(['getCities']);
 
 /**
  * Публичная форма thunk-аргумента RTK Query (`QueryThunkArg` / `MutationThunkArg`):
@@ -90,14 +78,17 @@ export const rtkQueryErrorMiddleware: Middleware =
       const payload = action.payload;
       if (
         !isAbortError(payload) &&
-        !isClientHttpError(getQueryErrorStatus(payload))
+        (isRequestTimeoutError(payload) ||
+          !isClientHttpError(getQueryErrorStatus(payload)))
       ) {
         const endpointName = getRtkQueryEndpointName(action);
-        if (endpointName && !TOAST_SILENT_ENDPOINTS.has(endpointName)) {
-          toast.error(
-            ENDPOINT_ERROR_MESSAGES[endpointName] ?? REQUEST_FAILED,
-            { tag: rtkQueryErrorTag(endpointName) },
-          );
+        const policy = endpointName
+          ? getQueryErrorPolicy(endpointName)
+          : undefined;
+        if (endpointName && !isSilentQueryErrorPolicy(policy)) {
+          toast.error(queryErrorPolicyMessage(policy, REQUEST_FAILED), {
+            tag: rtkQueryErrorTag(endpointName),
+          });
         }
       }
     }

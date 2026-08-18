@@ -1,5 +1,10 @@
 import { api, runQuery } from '@shared/store';
 import { request } from '@shared/api';
+import {
+  BOOKING_CANCEL_ERROR,
+  BOOKING_CREATE_ERROR,
+  BOOKING_LOOKUP_ERROR,
+} from '@shared/lib/messages';
 import type { Booking, CreateBookingRequest } from './model/types';
 import { BookingSchema } from './model/schemas';
 
@@ -51,6 +56,7 @@ export const bookingApi = api.injectEndpoints({
       queryFn: async (body, { signal }) =>
         runQuery(signal, () => createBooking(body, signal)),
       invalidatesTags: [{ type: 'Flight', id: 'LIST' }],
+      extraOptions: { errorPolicy: { message: BOOKING_CREATE_ERROR } },
     }),
     getBooking: build.query<Booking, BookingLookupArgs>({
       queryFn: async ({ code, lastName }, { signal }) =>
@@ -58,6 +64,7 @@ export const bookingApi = api.injectEndpoints({
       providesTags: (_result, _error, { code }) => [
         { type: 'Booking', id: code },
       ],
+      extraOptions: { errorPolicy: { message: BOOKING_LOOKUP_ERROR } },
     }),
     cancelBooking: build.mutation<Booking, BookingLookupArgs>({
       queryFn: async ({ code, lastName }, { signal }) =>
@@ -66,6 +73,7 @@ export const bookingApi = api.injectEndpoints({
         { type: 'Flight', id: 'LIST' },
         { type: 'Booking', id: code },
       ],
+      extraOptions: { errorPolicy: { message: BOOKING_CANCEL_ERROR } },
       async onQueryStarted({ code, lastName }, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;

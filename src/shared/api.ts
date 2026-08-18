@@ -1,9 +1,18 @@
 import { z, type ZodType } from 'zod';
-import { mergeAbortSignals } from './lib/abortSignals';
-import { ApiError, ValidationError } from './lib/errors';
+import {
+  createTimeoutSignal,
+  mergeAbortSignals,
+  type MergedAbortSignal,
+} from './lib/abortSignals';
+import {
+  ApiError,
+  ResponseValidationError,
+  isAbortError,
+  isTimeoutError,
+} from './lib/errors';
 
 /** Таймаут сетевых запросов, чтобы UI не зависал навечно. */
-const REQUEST_TIMEOUT_MS = 15_000;
+export const REQUEST_TIMEOUT_MS = 15_000;
 
 export type RequestOptions<S extends ZodType | undefined = undefined> =
   RequestInit & {
@@ -35,10 +44,79 @@ function parseResponse<S extends ZodType>(
     return schema.parse(json);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      throw ValidationError.fromZodError(error);
+      throw ResponseValidationError.fromZodError(error);
     }
     throw error;
   }
+}
+
+function isFetchSignalError(error: unknown): boolean {
+  return isAbortError(error) || isTimeoutError(error);
+}
+
+function throwIfClientTimeout(
+  error: unknown,
+  timeout: MergedAbortSignal,
+  callerSignal: AbortSignal | undefined,
+): void {
+  if (
+    isFetchSignalError(error) &&
+    timeout.signal.aborted &&
+    !callerSignal?.aborted
+  ) {
+    throw ApiError.timeout(error);
+  }
+}
+
+async function readErrorBody(response: Response): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch (error) {
+    if (isFetchSignalError(error)) {
+      throw error;
+    }
+    return null;
+  }
+}
+
+function toHttpApiError(status: number, errorBody: unknown): ApiError {
+  const message =
+    errorBody && typeof errorBody === 'object' && 'message' in errorBody
+      ? String(errorBody.message)
+      : `Request failed: ${status}`;
+  return new ApiError(message, status, {
+    cause: errorBody ?? undefined,
+  });
+}
+
+async function readSuccessJson(response: Response): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch (error) {
+    if (isFetchSignalError(error)) {
+      throw error;
+    }
+    throw ResponseValidationError.fromInvalidJson(error);
+  }
+}
+
+async function parseOkResponse(
+  response: Response,
+  schema: ZodType | undefined,
+): Promise<unknown> {
+  // 204 No Content — тела нет. Без schema это валидный пустой ответ.
+  if (response.status === 204) {
+    if (schema) {
+      return parseResponse(undefined, schema);
+    }
+    return undefined;
+  }
+
+  const json = await readSuccessJson(response);
+  if (schema) {
+    return parseResponse(json, schema);
+  }
+  return json;
 }
 
 /** Универсальный fetch-клиент без знания о доменных типах. */
@@ -56,40 +134,28 @@ export async function request(
 ): Promise<unknown> {
   const { headers: initHeaders, signal, schema, ...restInit } = init ?? {};
   const hasBody = restInit.body != null;
-  const merged = mergeAbortSignals(
-    signal ?? undefined,
-    AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-  );
+  const timeout = createTimeoutSignal(REQUEST_TIMEOUT_MS);
+  const merged = mergeAbortSignals(signal ?? undefined, timeout.signal);
 
   try {
-    const response = await fetch(path, {
-      ...restInit,
-      signal: merged?.signal,
-      headers: mergeRequestHeaders(initHeaders, { hasBody }),
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.json().catch(() => null);
-      const message =
-        errorBody && typeof errorBody === 'object' && 'message' in errorBody
-          ? String(errorBody.message)
-          : `Request failed: ${response.status}`;
-      throw new ApiError(message, response.status, {
-        cause: errorBody ?? undefined,
+    try {
+      const response = await fetch(path, {
+        ...restInit,
+        signal: merged?.signal,
+        headers: mergeRequestHeaders(initHeaders, { hasBody }),
       });
-    }
 
-    // 204 No Content — тело отсутствует; schema не применяется.
-    if (response.status === 204) {
-      return undefined;
-    }
+      if (!response.ok) {
+        throw toHttpApiError(response.status, await readErrorBody(response));
+      }
 
-    const json = await response.json();
-    if (schema) {
-      return parseResponse(json, schema);
+      return await parseOkResponse(response, schema);
+    } catch (error) {
+      throwIfClientTimeout(error, timeout, signal ?? undefined);
+      throw error;
     }
-    return json;
   } finally {
     merged?.dispose();
+    timeout.dispose();
   }
 }

@@ -14,19 +14,28 @@ import {
   bareEntitiesImportPaths,
   entitySelfBarrelPatterns,
   featureSelfBarrelPatterns,
+  toastLibImportPaths,
+  toastPublicBarrelPatterns,
 } from './eslint/restricted-imports.mjs';
+
+function restrictedImportsConfig({ extraPaths = [], extraPatterns = [] } = {}) {
+  return [
+    'error',
+    {
+      paths: [...bareEntitiesImportPaths(), ...extraPaths],
+      patterns: [...toastPublicBarrelPatterns(), ...extraPatterns],
+    },
+  ];
+}
 
 function featureSelfBarrelConfigs(features = FEATURES) {
   return features.map((feature) => ({
     files: [`src/features/${feature}/**/*.{ts,tsx}`],
     rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: bareEntitiesImportPaths(),
-          patterns: featureSelfBarrelPatterns(feature),
-        },
-      ],
+      'no-restricted-imports': restrictedImportsConfig({
+        extraPaths: toastLibImportPaths(),
+        extraPatterns: featureSelfBarrelPatterns(feature),
+      }),
     },
   }));
 }
@@ -35,13 +44,9 @@ function entitySelfBarrelConfigs(entities = ENTITIES) {
   return entities.map((entity) => ({
     files: [`src/entities/${entity}/**/*.{ts,tsx}`],
     rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: bareEntitiesImportPaths(),
-          patterns: entitySelfBarrelPatterns(entity),
-        },
-      ],
+      'no-restricted-imports': restrictedImportsConfig({
+        extraPatterns: entitySelfBarrelPatterns(entity),
+      }),
     },
   }));
 }
@@ -91,10 +96,7 @@ export default tseslint.config(
     settings: createBoundariesSettings(),
     rules: {
       'boundaries/dependencies': createBoundariesDependenciesRule(),
-      'no-restricted-imports': [
-        'error',
-        { paths: bareEntitiesImportPaths() },
-      ],
+      'no-restricted-imports': restrictedImportsConfig(),
     },
   },
   ...featureSelfBarrelConfigs(),

@@ -130,9 +130,7 @@ describe('boundaries/dependencies FSD policies', () => {
       ),
     ).toHaveLength(0);
     expect(
-      boundaryErrors(
-        lint(`import { store } from '@shared/store';`, mainFile),
-      ),
+      boundaryErrors(lint(`import { store } from '@shared/store';`, mainFile)),
     ).toHaveLength(0);
   });
 
@@ -217,9 +215,8 @@ describe('boundaries/dependencies FSD policies', () => {
 
 describe('no-restricted-imports complements (self-barrel / bare @entities)', () => {
   it('flags bare @entities via restricted-imports paths', async () => {
-    const { bareEntitiesImportPaths } = await import(
-      './restricted-imports.mjs'
-    );
+    const { bareEntitiesImportPaths } =
+      await import('./restricted-imports.mjs');
     const linter = createLinter();
     const config = [
       {
@@ -246,15 +243,12 @@ describe('no-restricted-imports complements (self-barrel / bare @entities)', () 
       config,
       { filename: searchFile },
     );
-    expect(slice.some((m) => m.ruleId === 'no-restricted-imports')).toBe(
-      false,
-    );
+    expect(slice.some((m) => m.ruleId === 'no-restricted-imports')).toBe(false);
   });
 
   it('flags feature self-barrel via restricted-imports patterns', async () => {
-    const { featureSelfBarrelPatterns } = await import(
-      './restricted-imports.mjs'
-    );
+    const { featureSelfBarrelPatterns } =
+      await import('./restricted-imports.mjs');
     const linter = createLinter();
     const config = [
       {
@@ -278,6 +272,97 @@ describe('no-restricted-imports complements (self-barrel / bare @entities)', () 
     );
     expect(messages.some((m) => m.ruleId === 'no-restricted-imports')).toBe(
       true,
+    );
+  });
+
+  it('flags Toast deep imports via restricted-imports patterns', async () => {
+    const { toastPublicBarrelPatterns } =
+      await import('./restricted-imports.mjs');
+    const linter = createLinter();
+    const config = [
+      {
+        files: ['**/*.{ts,tsx}'],
+        languageOptions: {
+          ecmaVersion: 2022,
+          sourceType: 'module',
+        },
+        rules: {
+          'no-restricted-imports': [
+            'error',
+            { patterns: toastPublicBarrelPatterns() },
+          ],
+        },
+      },
+    ];
+    const deep = linter.verify(
+      `import { toast } from '@shared/ui/Toast/toast';`,
+      config,
+      { filename: searchFile },
+    );
+    expect(deep.some((m) => m.ruleId === 'no-restricted-imports')).toBe(true);
+
+    const barrel = linter.verify(
+      `import { toast } from '@shared/ui/Toast';`,
+      config,
+      { filename: searchFile },
+    );
+    expect(barrel.some((m) => m.ruleId === 'no-restricted-imports')).toBe(
+      false,
+    );
+  });
+
+  it('flags feature imports of the toast bus via @shared/lib/toast', async () => {
+    const { toastLibImportPaths } = await import('./restricted-imports.mjs');
+    const linter = createLinter();
+    const config = [
+      {
+        files: ['**/*.{ts,tsx}'],
+        languageOptions: {
+          ecmaVersion: 2022,
+          sourceType: 'module',
+        },
+        rules: {
+          'no-restricted-imports': ['error', { paths: toastLibImportPaths() }],
+        },
+      },
+    ];
+    const fromFeature = linter.verify(
+      `import { toast } from '@shared/lib/toast';`,
+      config,
+      { filename: searchFile },
+    );
+    expect(fromFeature.some((m) => m.ruleId === 'no-restricted-imports')).toBe(
+      true,
+    );
+  });
+
+  it('allows store to import the toast bus from @shared/lib/toast', async () => {
+    const { toastPublicBarrelPatterns } =
+      await import('./restricted-imports.mjs');
+    const linter = createLinter();
+    const config = [
+      {
+        files: ['**/*.{ts,tsx}'],
+        languageOptions: {
+          ecmaVersion: 2022,
+          sourceType: 'module',
+        },
+        rules: {
+          'no-restricted-imports': [
+            'error',
+            { patterns: toastPublicBarrelPatterns() },
+          ],
+        },
+      },
+    ];
+    const storeFile = path.join(rootDir, 'src/shared/store/errorMiddleware.ts');
+    const fromStore = linter.verify(
+      `import { toast } from '@shared/lib/toast';`,
+      config,
+      { filename: storeFile },
+    );
+    expect(fromStore.some((m) => m.ruleId === 'no-restricted-imports')).toBe(
+      false,
     );
   });
 });

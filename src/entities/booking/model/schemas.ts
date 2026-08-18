@@ -1,4 +1,5 @@
 import { FlightSchema, MoneySchema } from '@entities/flight';
+import { IsoDateSchema, IsoDateTimeSchema } from '@shared/lib/openApiSchemas';
 import { z } from 'zod';
 
 export const BookingStatusSchema = z.enum(['confirmed', 'cancelled']);
@@ -6,7 +7,7 @@ export const BookingStatusSchema = z.enum(['confirmed', 'cancelled']);
 export const PassengerSchema = z.object({
   firstName: z.string(),
   lastName: z.string(),
-  dateOfBirth: z.string(),
+  dateOfBirth: IsoDateSchema,
   documentNumber: z.string(),
 });
 
@@ -22,7 +23,7 @@ export const BookingSchema = z.object({
   passengers: z.array(PassengerSchema),
   contact: ContactSchema,
   totalPrice: MoneySchema,
-  createdAt: z.string(),
+  createdAt: IsoDateTimeSchema,
 });
 
 export type BookingStatus = z.infer<typeof BookingStatusSchema>;

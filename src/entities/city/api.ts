@@ -16,6 +16,10 @@ export const cityApi = api.injectEndpoints({
         runQuery(signal, () => getCities(signal)),
       providesTags: ['City'],
       keepUnusedDataFor: CITIES_CACHE_SECONDS,
+      extraOptions: {
+        // Fallback-notice на поиске; Layout тянет города на всех страницах.
+        errorPolicy: { silent: true },
+      },
     }),
   }),
 });

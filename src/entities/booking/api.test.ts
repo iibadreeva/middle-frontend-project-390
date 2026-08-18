@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  BOOKING_CANCEL_ERROR,
+  BOOKING_CREATE_ERROR,
+  BOOKING_LOOKUP_ERROR,
+} from '@shared/lib/messages';
 import { fixtureBooking } from '@shared/test/fixtures';
-import { cancelBooking, getBooking } from './api';
+import { getQueryErrorPolicy } from '@shared/store/queryErrorPolicy';
+import { bookingApi, cancelBooking, getBooking } from './api';
 
 describe('booking HTTP client', () => {
   afterEach(() => {
@@ -51,5 +57,23 @@ describe('booking HTTP client', () => {
         body: JSON.stringify({ lastName: 'Петров' }),
       }),
     );
+  });
+});
+
+describe('booking query error policy', () => {
+  it('registers create, lookup, and cancel error messages', () => {
+    expect(
+      getQueryErrorPolicy(bookingApi.endpoints.createBooking.name),
+    ).toEqual({
+      message: BOOKING_CREATE_ERROR,
+    });
+    expect(getQueryErrorPolicy(bookingApi.endpoints.getBooking.name)).toEqual({
+      message: BOOKING_LOOKUP_ERROR,
+    });
+    expect(
+      getQueryErrorPolicy(bookingApi.endpoints.cancelBooking.name),
+    ).toEqual({
+      message: BOOKING_CANCEL_ERROR,
+    });
   });
 });
